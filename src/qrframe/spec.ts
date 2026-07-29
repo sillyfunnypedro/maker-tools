@@ -1,0 +1,110 @@
+// QR-frame specification + self-describing payload.
+//
+// The QR code carries everything the detector needs, so the app needs no shared
+// registry and new frame sizes need no app update. All lengths are millimetres in
+// the frame's OUTER coordinate system (origin = outer top-left corner).
+//
+// Layout: the QR lives in a wide top-left margin block so the scanning window
+// stays clear; the opening is offset right/down by (marginL, marginT). The right
+// and bottom margins are narrow strips that just carry a row of dots.
+import type { Pt } from "./homography";
+
+export interface QrFrameSpec {
+  id: string;
+  innerW: number;    // opening width
+  innerH: number;    // opening height
+  scaleMm: number;   // sample square side (circle = scaleMm/2 diameter)
+  marginL: number;   // left border strip  (wide: holds the QR)
+  marginT: number;   // top border strip   (wide: holds the QR)
+  marginR: number;   // right border strip (narrow: dots only)
+  marginB: number;   // bottom border strip(narrow: dots only)
+  qrX: number;       // QR module-area rect (outer-mm coords), in the top-left block
+  qrY: number;
+  qrSize: number;
+  dotSpacing: number; // spacing between edge dots
+  dotD: number;       // dot diameter
+}
+
+export const PAYLOAD_MAGIC = "SGF1";
+
+export function encodePayload(s: QrFrameSpec): string {
+  return [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm,
+    s.marginL, s.marginT, s.marginR, s.marginB,
+    s.qrX, s.qrY, s.qrSize, s.dotSpacing, s.dotD].join(";");
+}
+
+export function decodePayload(text: string): QrFrameSpec | null {
+  const p = text.split(";");
+  if (p[0] !== PAYLOAD_MAGIC || p.length < 14) return null;
+  const n = (i: number) => Number(p[i]);
+  return {
+    id: p[1], innerW: n(2), innerH: n(3), scaleMm: n(4),
+    marginL: n(5), marginT: n(6), marginR: n(7), marginB: n(8),
+    qrX: n(9), qrY: n(10), qrSize: n(11), dotSpacing: n(12), dotD: n(13),
+  };
+}
+
+export const outerW = (s: QrFrameSpec) => s.marginL + s.innerW + s.marginR;
+export const outerH = (s: QrFrameSpec) => s.marginT + s.innerH + s.marginB;
+
+/** QR module-area corners in mm (TL, TR, BR, BL). */
+export function qrCornersMm(s: QrFrameSpec): Pt[] {
+  return [[s.qrX, s.qrY], [s.qrX + s.qrSize, s.qrY],
+    [s.qrX + s.qrSize, s.qrY + s.qrSize], [s.qrX, s.qrY + s.qrSize]];
+}
+
+/** Opening (inner window) corners in mm (TL, TR, BR, BL). */
+export function openingCornersMm(s: QrFrameSpec): Pt[] {
+  const x = s.marginL, y = s.marginT;
+  return [[x, y], [x + s.innerW, y], [x + s.innerW, y + s.innerH], [x, y + s.innerH]];
+}
+
+/** Sample square + circle diameter endpoints (mm), centred in the opening. */
+export function samplePointsMm(s: QrFrameSpec): { square: Pt[]; circle: Pt[] } {
+  const cx = s.marginL + s.innerW / 2, cy = s.marginT + s.innerH / 2, q = s.scaleMm;
+  return {
+    square: [[cx - q / 2, cy - q / 2], [cx + q / 2, cy - q / 2], [cx + q / 2, cy + q / 2], [cx - q / 2, cy + q / 2]],
+    circle: [[cx - q / 4, cy], [cx + q / 4, cy], [cx, cy - q / 4], [cx, cy + q / 4]],
+  };
+}
+
+/**
+ * Registration dots: one row along each edge, on that side's margin centreline,
+ * at ~dotSpacing intervals, excluding any within the QR rect (plus a quiet-zone
+ * margin). Deterministic, so the detector regenerates the identical set.
+ */
+export function dotLayoutMm(s: QrFrameSpec): Pt[] {
+  const ow = outerW(s), oh = outerH(s);
+  const clear = s.qrSize * 0.6; // keep dots off the QR + its quiet zone
+  const inQr = (x: number, y: number) =>
+    x > s.qrX - clear && x < s.qrX + s.qrSize + clear &&
+    y > s.qrY - clear && y < s.qrY + s.qrSize + clear;
+
+  const line = (from: number, to: number, fixed: number, horiz: boolean): Pt[] => {
+    const span = to - from;
+    const n = Math.max(1, Math.round(span / s.dotSpacing));
+    const step = span / n;
+    const pts: Pt[] = [];
+    for (let i = 0; i <= n; i++) {
+      const t = from + i * step;
+      const p: Pt = horiz ? [t, fixed] : [fixed, t];
+      if (!inQr(p[0], p[1])) pts.push(p);
+    }
+    return pts;
+  };
+
+  const seen = new Set<string>();
+  const acc: Pt[] = [];
+  const add = (arr: Pt[]) => {
+    for (const p of arr) {
+      const k = `${p[0].toFixed(2)},${p[1].toFixed(2)}`;
+      if (!seen.has(k)) { seen.add(k); acc.push(p); }
+    }
+  };
+  const cT = s.marginT / 2, cB = oh - s.marginB / 2, cL = s.marginL / 2, cR = ow - s.marginR / 2;
+  add(line(cL, ow - s.marginR / 2, cT, true));   // top
+  add(line(cL, ow - s.marginR / 2, cB, true));   // bottom
+  add(line(cT, oh - s.marginB / 2, cL, false));  // left
+  add(line(cT, oh - s.marginB / 2, cR, false));  // right
+  return acc;
+}

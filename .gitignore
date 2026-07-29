@@ -1,0 +1,35 @@
+node_modules
+dist
+*.local
+.DS_Store
+
+# Generated test fixtures (raw grayscale photos + manifest) for the detector
+# suite.
+test-fixtures/
+
+# Local debug dumps (developer-only pipeline snapshots, not part of the app).
+debug-dumps/
+
+# Never publish images in this repo. Users' uploaded/source drawings and any
+# generated output images stay local and must not be committed.
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tif
+*.tiff
+*.webp
+*.svg
+*.ico
+*.heic
+*.heif
+
+# ...except the walk-through artwork, which the app serves at runtime (see
+# src/TutorialPage.tsx). These are our own frame photos and pipeline output, not
+# anyone's upload, and they are deliberately published.
+!public/favicon.svg
+!public/tutorial/
+!public/tutorial/*.jpg
+!public/tutorial/*.png
+!public/tutorial/*.svg

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Stylised crossed pencil and ruler for "Maker Tools" -->
+  <!-- Pencil (diagonal, bottom-left to top-right) -->
+  <rect x="4" y="4" width="4" height="22" rx="1" fill="#e8a838" transform="rotate(-45 16 16)"/>
+  <polygon points="6,26 4.5,29.5 8,28" fill="#333" transform="rotate(-45 16 16)"/>
+  <rect x="4" y="4" width="4" height="3" rx="1" fill="#d45" transform="rotate(-45 16 16)"/>
+  <!-- Ruler (diagonal, top-left to bottom-right) -->
+  <rect x="24" y="4" width="4" height="22" rx="1" fill="#4a9" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="8" x2="25.5" y2="8" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="11" x2="26" y2="11" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="14" x2="25.5" y2="14" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="17" x2="26" y2="17" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="20" x2="25.5" y2="20" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+  <line x1="24" y1="23" x2="26" y2="23" stroke="#fff" stroke-width="0.7" transform="rotate(45 16 16)"/>
+</svg>
