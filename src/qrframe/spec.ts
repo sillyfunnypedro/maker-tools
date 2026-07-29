@@ -1,8 +1,14 @@
-// QR-frame specification + self-describing payload.
+// QR-frame specification + payload.
 //
-// The QR code carries everything the detector needs, so the app needs no shared
-// registry and new frame sizes need no app update. All lengths are millimetres in
-// the frame's OUTER coordinate system (origin = outer top-left corner).
+// The QR carries the frame's own size (opening width/height + scale), so the
+// printed sheet and the detector always agree on what they're measuring. The
+// rest of the layout — margins, the QR's own position/size, dot spacing/
+// diameter — is looked up from STANDARD_SPECS by id rather than encoded, since
+// it's already fixed per id and doesn't vary independently of it; that keeps
+// the QR payload short (fewer modules, bigger/more reliable module size at the
+// same printed footprint) at the cost of a frame `id` needing an entry in
+// STANDARD_SPECS to be recognised. All lengths are millimetres in the frame's
+// OUTER coordinate system (origin = outer top-left corner).
 //
 // Layout: the QR lives in a wide top-left margin block so the scanning window
 // stays clear; the opening is offset right/down by (marginL, marginT). The right
@@ -25,23 +31,30 @@ export interface QrFrameSpec {
   dotD: number;       // dot diameter
 }
 
+/** The standard frame sizes (mm). Wide top-left margins hold the QR clear of the
+ *  scanning window; right/bottom are narrow dot strips. Also the decode-time
+ *  registry: `decodePayload` looks up everything but id/innerW/innerH/scaleMm
+ *  here, keyed by id. */
+export const STANDARD_SPECS: QrFrameSpec[] = [
+  { id: "std", innerW: 150, innerH: 168, scaleMm: 90, marginL: 34, marginT: 34, marginR: 12, marginB: 12, qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4 },
+  { id: "half", innerW: 75, innerH: 84, scaleMm: 45, marginL: 26, marginT: 26, marginR: 9, marginB: 9, qrX: 3, qrY: 3, qrSize: 20, dotSpacing: 11, dotD: 3 },
+  { id: "square100", innerW: 100, innerH: 100, scaleMm: 60, marginL: 28, marginT: 28, marginR: 10, marginB: 10, qrX: 3, qrY: 3, qrSize: 22, dotSpacing: 12, dotD: 3.5 },
+  { id: "large", innerW: 216, innerH: 279, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+  { id: "bigsquare", innerW: 246, innerH: 246, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+];
+
 export const PAYLOAD_MAGIC = "SGF1";
 
 export function encodePayload(s: QrFrameSpec): string {
-  return [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm,
-    s.marginL, s.marginT, s.marginR, s.marginB,
-    s.qrX, s.qrY, s.qrSize, s.dotSpacing, s.dotD].join(";");
+  return [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm].join(";");
 }
 
 export function decodePayload(text: string): QrFrameSpec | null {
   const p = text.split(";");
-  if (p[0] !== PAYLOAD_MAGIC || p.length < 14) return null;
-  const n = (i: number) => Number(p[i]);
-  return {
-    id: p[1], innerW: n(2), innerH: n(3), scaleMm: n(4),
-    marginL: n(5), marginT: n(6), marginR: n(7), marginB: n(8),
-    qrX: n(9), qrY: n(10), qrSize: n(11), dotSpacing: n(12), dotD: n(13),
-  };
+  if (p[0] !== PAYLOAD_MAGIC || p.length < 5) return null;
+  const layout = STANDARD_SPECS.find((spec) => spec.id === p[1]);
+  if (!layout) return null;
+  return { ...layout, id: p[1], innerW: Number(p[2]), innerH: Number(p[3]), scaleMm: Number(p[4]) };
 }
 
 export const outerW = (s: QrFrameSpec) => s.marginL + s.innerW + s.marginR;

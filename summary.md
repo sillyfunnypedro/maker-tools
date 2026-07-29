@@ -1,5 +1,13 @@
 # QR payload size investigation
 
+**Status: option B implemented.** `src/qrframe/spec.ts` now encodes only
+`magic;id;innerW;innerH;scaleMm`, and `decodePayload` looks up the layout
+constants (margins, QR position/size, dot spacing/diameter) from
+`STANDARD_SPECS` by id. Every standard frame size now renders at QR version 2
+(25×25 modules), down from version 4 (33×33) for all but `half`. Full test
+suite (including the real generator → raster → photograph → detect round-trip)
+passes.
+
 Question: can the printed QR codes on the SketchFrame sheets be made smaller by
 putting less data in them, while still driving the frame's sizing from the QR?
 

@@ -3,18 +3,10 @@
 // the printed sheet and the detector share one source of truth.
 import QRCode from "qrcode";
 import {
-  encodePayload, dotLayoutMm, outerW, outerH, type QrFrameSpec,
+  encodePayload, dotLayoutMm, outerW, outerH, STANDARD_SPECS, type QrFrameSpec,
 } from "./spec";
 
-/** The standard frame sizes (mm). Wide top-left margins hold the QR clear of the
- *  scanning window; right/bottom are narrow dot strips. */
-export const STANDARD_SPECS: QrFrameSpec[] = [
-  { id: "std", innerW: 150, innerH: 168, scaleMm: 90, marginL: 34, marginT: 34, marginR: 12, marginB: 12, qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4 },
-  { id: "half", innerW: 75, innerH: 84, scaleMm: 45, marginL: 26, marginT: 26, marginR: 9, marginB: 9, qrX: 3, qrY: 3, qrSize: 20, dotSpacing: 11, dotD: 3 },
-  { id: "square100", innerW: 100, innerH: 100, scaleMm: 60, marginL: 28, marginT: 28, marginR: 10, marginB: 10, qrX: 3, qrY: 3, qrSize: 22, dotSpacing: 12, dotD: 3.5 },
-  { id: "large", innerW: 216, innerH: 279, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
-  { id: "bigsquare", innerW: 246, innerH: 246, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
-];
+export { STANDARD_SPECS };
 
 function qrRects(spec: QrFrameSpec): string {
   const qr = QRCode.create(encodePayload(spec), { errorCorrectionLevel: "M" });

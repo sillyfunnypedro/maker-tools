@@ -66,7 +66,9 @@ Print a SketchFrame sheet (see below), draw inside its opening, photograph it,
 and this tool finds the frame, deskews the opening, and exports the drawing as a
 **true-millimetre SVG** for a CNC. The QR code on the
 sheet carries the frame's own dimensions, so the printed page and the detector
-share one source of truth.
+share one source of truth. (The rest of the sheet's layout — margins, dot
+spacing, the QR's own size — is looked up by the frame's id rather than
+encoded, to keep the QR small.)
 
 It traces centerlines — one line in the drawing becomes one line in the file.
 Three view controls let you frame the result without re-running anything:
