@@ -24,6 +24,7 @@ import { rectifyOpening, flattenIllumination, otsuThreshold } from "./rectify";
 import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
+import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
 
 /** Decode a File, fix EXIF orientation, downscale to maxDim, and return pixels. */
 async function fileToImageData(file: File, maxDim: number): Promise<ImageData> {
@@ -55,6 +56,7 @@ function glassFlattenRadius(img: ImageData): number {
 }
 
 export default function App() {
+  const [showCookieSplash, setShowCookieSplash] = useState(() => !cookiePolicyShown());
   const [params, setParams] = useState<Params>(DEFAULT_PARAMS);
   const [busy, setBusy] = useState(false);
   const [hasResult, setHasResult] = useState(false);
@@ -551,6 +553,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {showCookieSplash && <CookieSplash onDismiss={() => setShowCookieSplash(false)} />}
       <header>
         <div className="header-row">
           <h1>

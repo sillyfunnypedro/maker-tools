@@ -447,3 +447,62 @@ button.primary {
   border-left: 3px solid var(--accent); border-radius: 8px;
   padding: 12px 14px; color: var(--muted); font-size: 14px;
 }
+
+/* Cookie policy splash screen */
+.cookie-splash {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+.cookie-splash.cookie-fade { opacity: 0; }
+.cookie-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+.cookie-card h2 {
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+  color: var(--text);
+}
+.cookie-poem {
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.cookie-poem p { margin: 0 0 12px; }
+.cookie-poem code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+.cookie-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #06131f;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+.cookie-btn:hover { filter: brightness(1.1); }
