@@ -126,10 +126,10 @@ Pushing to `main` auto-deploys to GitHub Pages via the workflow in
 
 ## Project status
 
-This is a **one-off project, provided as-is** for people to use or not. I'm
-**not accepting pull requests, feature requests, or bug reports**, and issues
-are disabled — the code is not actively maintained. Since it's released under
-CC0, you're welcome to copy it and adapt it for your own needs.
+This is a **personal project, provided as-is.** Pull requests and issues are
+disabled — I am not actively maintaining it and may push changes at any time
+without notice (e.g. to fix a bug I hit myself). Since it's released under CC0,
+you're welcome to clone it, fork it, or adapt it however you like.
 
 ## License
 
