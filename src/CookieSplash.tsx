@@ -21,6 +21,11 @@ export function CookieSplash({ onDismiss }: { onDismiss: () => void }) {
     setTimeout(onDismiss, 300);
   };
 
+  const decline = () => {
+    setFading(true);
+    setTimeout(onDismiss, 300);
+  };
+
   return (
     <div className={`cookie-splash${fading ? " cookie-fade" : ""}`} role="dialog" aria-modal="true" aria-labelledby="cookie-title">
       <div className="cookie-card">
@@ -47,6 +52,9 @@ export function CookieSplash({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <button className="cookie-btn" onClick={accept}>
           I do accept this cookie small — now show me Maker Tools!
+        </button>
+        <button className="cookie-decline" onClick={decline}>
+          No thanks, I enjoy the poem
         </button>
       </div>
     </div>
