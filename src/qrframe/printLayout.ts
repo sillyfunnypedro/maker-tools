@@ -84,7 +84,7 @@ export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLa
   // The label sits in the top margin, so it needs that margin to exist at all —
   // skip it rather than overlap the frame art on a page with no room to spare.
   const label = opts.label?.trim();
-  const fontSize = Math.max(3, Math.min(6, dy * 0.3));
+  const fontSize = Math.max(4, Math.min(14, dy * 0.35));
   const labelSvg = label && dy >= 4
     ? `  <text x="${(pageW / 2).toFixed(2)}" y="${(dy / 2).toFixed(2)}" ` +
       `font-family="sans-serif" font-size="${fontSize.toFixed(2)}" text-anchor="middle" ` +
