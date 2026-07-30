@@ -38,7 +38,10 @@ for (const variant of VARIANTS) {
   const pdfs: string[] = [];
   console.log(`\n${variant.name} sheets -> ${OUT}/`);
   for (const spec of STANDARD_SPECS) {
-    const layout = printPageSvg(spec, { sample: variant.sample });
+    const label = variant.name === "blank"
+      ? `SketchFrame "${spec.id}" — opening ${spec.innerW}×${spec.innerH} mm — print at 100%`
+      : undefined;
+    const layout = printPageSvg(spec, { sample: variant.sample, label });
     // Intermediate SVGs always stay internal — public/ is copied verbatim into
     // the build, and shipping a stray .svg next to each .pdf would be noise
     // (they're also gitignored, so they'd only exist on this machine).
