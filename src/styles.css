@@ -173,6 +173,7 @@ button.primary {
   color: var(--muted);
 }
 .hint strong { color: var(--text); font-weight: 600; }
+.copy-msg { color: var(--accent); font-size: 0.85rem; }
 
 .about {
   margin-top: 28px;

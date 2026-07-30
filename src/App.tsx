@@ -63,6 +63,12 @@ export default function App() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  // Transient "Copied!" / "Copy failed" feedback for the clipboard buttons.
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const flashCopyMsg = useCallback((msg: string) => {
+    setCopyMsg(msg);
+    setTimeout(() => setCopyMsg((m) => (m === msg ? null : m)), 1800);
+  }, []);
 
   // SketchFrame detection: the registration frame printed around the drawing.
   const [frameResult, setFrameResult] = useState<DetectResult | null>(null);
@@ -361,6 +367,26 @@ export default function App() {
     if (blob) await share(blob, `${baseName}.png`);
   }, [share, baseName]);
 
+  // Copy the preview image to the clipboard as PNG, so it can be pasted straight
+  // into another app instead of going through a save/attach step. Only Copy
+  // targets actual image data — the Clipboard API has no way to write a PDF, and
+  // "copying" the SVG can only ever mean its markup as text, not a pasteable image.
+  const copyImage = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+      flashCopyMsg("Copy isn't supported in this browser — use Share or Download instead.");
+      return;
+    }
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/png"));
+    if (!blob) return;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      flashCopyMsg("Copied image to clipboard.");
+    } catch {
+      flashCopyMsg("Couldn't copy — use Share or Download instead.");
+    }
+  }, [flashCopyMsg]);
+
   const [svgBusy, setSvgBusy] = useState(false);
 
   // CNC export: vectorize and scale to true mm using the detected frame's
@@ -417,6 +443,26 @@ export default function App() {
       setSvgBusy(false);
     }
   }, [requestCncSvg, download, baseName]);
+
+  // Copy the CNC SVG's markup as text — pasteable into a code editor, or into
+  // vector tools (Illustrator, Figma, Inkscape) that accept SVG on paste. Not an
+  // image-data copy; some paste targets (chat apps, docs) will just show raw XML.
+  const copySvg = useCallback(async () => {
+    if (!navigator.clipboard?.writeText) {
+      flashCopyMsg("Copy isn't supported in this browser — use Download instead.");
+      return;
+    }
+    setSvgBusy(true);
+    try {
+      const svg = await requestCncSvg();
+      await navigator.clipboard.writeText(svg);
+      flashCopyMsg("Copied SVG code to clipboard.");
+    } catch {
+      flashCopyMsg("Couldn't copy — detect a frame in the photo first.");
+    } finally {
+      setSvgBusy(false);
+    }
+  }, [requestCncSvg, flashCopyMsg]);
 
 
 
@@ -785,6 +831,12 @@ export default function App() {
                       ? "Working…"
                       : `Download CNC SVG · mm${frameResult?.detected ? ` · ${frameResult.spec?.id}` : ""}`}
                   </button>
+                  <button
+                    onClick={copySvg}
+                    disabled={!hasResult || busy || svgBusy || !frameResult?.detected}
+                  >
+                    Copy SVG code
+                  </button>
                   {(() => {
                     const spec = frameResult?.detected ? frameResult.spec : undefined;
                     return spec ? (
@@ -804,6 +856,9 @@ export default function App() {
                 <>
                   <button className="primary" onClick={savePng} disabled={!hasResult || busy}>
                     {pngLabel}
+                  </button>
+                  <button onClick={copyImage} disabled={!hasResult || busy}>
+                    Copy image
                   </button>
 
                   {isMobile && (
@@ -832,6 +887,7 @@ export default function App() {
       )}
 
       {error && <p className="error">{error}</p>}
+      {copyMsg && <p className="hint copy-msg">{copyMsg}</p>}
 
       <details className="about">
         <summary>About this app</summary>
