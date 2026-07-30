@@ -90,12 +90,16 @@ have.
 
 | Size | Opening | Paper |
 | --- | --- | --- |
-| `std` | 150×168 mm | Letter |
-| `half` | 75×84 mm | Letter |
-| `square100` | 100×100 mm | Letter |
-| `large` | 216×279 mm | Tabloid (11×17 in) |
-| `bigsquare` | 246×246 mm | needs large-format printing |
-| `tabloid` | 210×360 mm | Tabloid (11×17 in) — uses the sheet's full length |
+| `std` | 154×172 mm | Letter |
+| `half` | 77×86 mm | Letter |
+| `square100` | 102.5×102.5 mm | Letter |
+| `large` | 221×284 mm | Tabloid (11×17 in) |
+| `bigsquare` | 251×251 mm | needs large-format printing |
+| `tabloid` | 215×365 mm | Tabloid (11×17 in) — uses the sheet's full length |
+
+The border around each opening is trimmed to the minimum that still scans
+reliably — every sheet is the same overall size as before, just with less
+white space and a bigger drawing area for it.
 
 **Print at 100%** — turn off "Fit to page". Every measurement the app produces
 comes from the printed size, so a sheet printed at 96% makes every exported

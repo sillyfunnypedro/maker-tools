@@ -9,9 +9,12 @@ import { detectQrFrame } from "./detect";
 import { warpGray, QUADS, addClutter } from "./_testutil";
 
 const PPMM = 6;
+// marginR/marginB, qrX/Y/qrSize, dotSpacing/dotD must match STANDARD_SPECS's
+// "std" entry (spec.ts) exactly: decodePayload looks those up by id, so a
+// mismatch here would render dots the decoder's model doesn't expect.
 const SPEC: QrFrameSpec = {
-  id: "std", innerW: 150, innerH: 168, scaleMm: 90,
-  marginL: 34, marginT: 34, marginR: 12, marginB: 12,
+  id: "std", innerW: 154, innerH: 172, scaleMm: 90,
+  marginL: 34, marginT: 34, marginR: 8, marginB: 8,
   qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4,
 };
 
