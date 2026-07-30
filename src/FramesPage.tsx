@@ -25,10 +25,10 @@ const LABELS: Record<string, string> = {
 /**
  * The large-format sizes are each maxed out for one specific paper standard,
  * so a NA reader and an ISO-paper reader want different halves of the list.
- * The regular sizes (fit comfortably on either Letter or A4) aren't split.
+ * The regular sizes fit comfortably on either Letter or A4, so they're global.
  */
-const GROUPS: { heading: string | null; ids: string[] }[] = [
-  { heading: null, ids: ["std", "half", "square50", "square100"] },
+const GROUPS: { heading: string; ids: string[] }[] = [
+  { heading: "Global (fits Letter or A4 anywhere)", ids: ["std", "half", "square50", "square100"] },
   { heading: "Large prints — North America (Tabloid / ANSI C paper)", ids: ["large", "bigsquare", "tabloid", "ansiC"] },
   { heading: "Large prints — rest of world (A4 / A3 / A2 paper)", ids: ["a4", "a3", "a2"] },
 ];
@@ -54,8 +54,8 @@ export function FramesPage() {
       </div>
 
       {GROUPS.map((group) => (
-        <section key={group.heading ?? "standard"}>
-          {group.heading && <h3 className="frame-group-heading">{group.heading}</h3>}
+        <section key={group.heading}>
+          <h3 className="frame-group-heading">{group.heading}</h3>
           <ul className="frame-list">
             {group.ids.map((id) => {
               const spec = STANDARD_SPECS.find((s) => s.id === id);

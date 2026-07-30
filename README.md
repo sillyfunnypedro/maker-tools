@@ -88,6 +88,8 @@ Blank frames in eleven sizes, as PDFs at true scale. Print one and draw in the
 opening, or cut the opening out and lay the sheet over something you already
 have.
 
+**Global (fits Letter or A4 anywhere):**
+
 | Size | Opening | Paper |
 | --- | --- | --- |
 | `std` | 154×172 mm | Letter |
