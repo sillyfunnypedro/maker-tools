@@ -35,8 +35,8 @@ const GROUPS: { heading: string; ids: string[] }[] = [
 ];
 
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */
-const href = (id: string) => `frames/qrframe-${id}-blank.pdf`;
-const tiledHref = (id: string) => `frames/qrframe-${id}-tiled.pdf`;
+const href = (id: string) => `./frames/qrframe-${id}-blank.pdf`;
+const tiledHref = (id: string) => `./frames/qrframe-${id}-tiled.pdf`;
 
 /** Pre-compute which specs have tiled versions (too large for Letter). */
 const TILED_INFO: Record<string, { rows: number; cols: number; pages: number }> = {};
@@ -110,7 +110,7 @@ export function FramesPage() {
       ))}
 
       <p className="hint">
-        <a href="frames/qrframes-blank.pdf" download>
+        <a href="./frames/qrframes-blank.pdf" download>
           Download all sizes
         </a>{" "}
         as one PDF, one size per page.
