@@ -10,6 +10,9 @@ test-fixtures/
 # Local debug dumps (developer-only pipeline snapshots, not part of the app).
 debug-dumps/
 
+# Working files not for the repo.
+do-not-publish/
+
 # Never publish images in this repo. Users' uploaded/source drawings and any
 # generated output images stay local and must not be committed.
 *.jpg
