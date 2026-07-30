@@ -142,7 +142,9 @@ export function FramesPage() {
                       <button
                         type="button"
                         className="frame-dl"
-                        onClick={() => printLabeled(spec, `${label.trim()} · ${window.location.host}`)}
+                        onClick={() => printLabeled(
+                          spec, `${label.trim()} · ${window.location.host}${window.location.pathname}`,
+                        )}
                       >
                         Print with label
                       </button>

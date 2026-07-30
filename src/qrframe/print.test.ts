@@ -115,6 +115,16 @@ describe("page label", () => {
     expect(norm(withLabel.replace(/<text[\s\S]*?<\/text>\n?/, ""))).toBe(norm(without));
   });
 
+  it("shrinks the font so a long label can't run off the page", () => {
+    const std = STANDARD_SPECS.find((s) => s.id === "std")!;
+    const long = "Made by Juancho · sillyfunnypedro.github.io/maker-tools/";
+    const layout = printPageSvg(std, { sample: false, label: long });
+    const size = Number(layout.svg.match(/font-size="([\d.]+)"/)![1]);
+    // Same rough glyph-width estimate the implementation uses, checked against
+    // the actual page width rather than re-deriving the exact formula.
+    expect(long.length * size * 0.6).toBeLessThanOrEqual(layout.pageW * 0.92 + 0.01);
+  });
+
   it("escapes XML-special characters instead of injecting markup", () => {
     const std = STANDARD_SPECS.find((s) => s.id === "std")!;
     const svg = printPageSvg(std, { sample: false, label: `<script>&"'</script>` }).svg;

@@ -84,7 +84,17 @@ export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLa
   // The label sits in the top margin, so it needs that margin to exist at all —
   // skip it rather than overlap the frame art on a page with no room to spare.
   const label = opts.label?.trim();
-  const fontSize = Math.max(4, Math.min(14, dy * 0.35));
+  let fontSize = Math.max(4, Math.min(14, dy * 0.35));
+  if (label) {
+    // No text-metrics available while just building an SVG string, so estimate
+    // width from a generic sans-serif average glyph width and shrink to fit —
+    // a long name + URL would otherwise run off both edges of the page at the
+    // font size the vertical margin alone would allow.
+    const avgGlyphWidth = 0.6;
+    const maxTextWidth = pageW * 0.92;
+    const estWidth = label.length * fontSize * avgGlyphWidth;
+    if (estWidth > maxTextWidth) fontSize = Math.max(3, maxTextWidth / (label.length * avgGlyphWidth));
+  }
   const labelSvg = label && dy >= 4
     ? `  <text x="${(pageW / 2).toFixed(2)}" y="${(dy / 2).toFixed(2)}" ` +
       `font-family="sans-serif" font-size="${fontSize.toFixed(2)}" text-anchor="middle" ` +
