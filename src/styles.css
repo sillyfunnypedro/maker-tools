@@ -524,3 +524,22 @@ button.primary {
   padding: 6px 10px;
 }
 .cookie-decline:hover { color: var(--text); }
+
+/* Frame download actions — stacked buttons for full + tiled PDFs */
+.frame-actions { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
+.frame-dl-tiled {
+  font-size: 12px;
+  padding: 8px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.frame-dl-tiled:active { filter: brightness(0.9); }
+
+/* Frame group headings */
+.frame-group-heading {
+  margin: 20px 0 8px;
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 600;
+}

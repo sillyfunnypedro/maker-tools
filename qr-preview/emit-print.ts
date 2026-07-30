@@ -21,6 +21,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { STANDARD_SPECS } from "../src/qrframe/generate";
 import { layoutNote, printPageSvg } from "../src/qrframe/printLayout";
 import { outerH, outerW } from "../src/qrframe/spec";
+import { tiledPrintSvgs } from "../src/qrframe/tiledPrint";
 
 const INTERNAL = "qr-preview/print";   // calibration sheets, not published
 export const PUBLIC = "public/frames";  // blank sheets, served by the app
@@ -61,4 +62,33 @@ for (const variant of VARIANTS) {
     `-sOutputFile=${all}`, ...pdfs,
   ]);
   console.log(`  ${all}  (all ${pdfs.length} sizes, one page each)`);
+}
+
+// Tiled versions of large frames — Letter-sized pages the user tapes together.
+// Only blank sheets (no calibration squares needed for tiled assembly).
+console.log(`\ntiled (Letter segments) -> ${PUBLIC}/`);
+for (const spec of STANDARD_SPECS) {
+  const tiled = tiledPrintSvgs(spec, { sample: false });
+  if (!tiled) continue; // fits on one page, no tiling needed
+
+  const tilePdfs: string[] = [];
+  for (const page of tiled.pages) {
+    const svgPath = `${INTERNAL}/qrframe-${spec.id}-tiled-r${page.row}c${page.col}.svg`;
+    const pdfPath = `${INTERNAL}/qrframe-${spec.id}-tiled-r${page.row}c${page.col}.pdf`;
+    writeFileSync(svgPath, page.svg);
+    execFileSync("rsvg-convert", ["-f", "pdf", "-o", pdfPath, svgPath]);
+    tilePdfs.push(pdfPath);
+  }
+
+  // Combine into one multi-page PDF.
+  const tiledPdf = `${PUBLIC}/qrframe-${spec.id}-tiled.pdf`;
+  execFileSync("gs", [
+    "-dNOPAUSE", "-dBATCH", "-dQUIET", "-sDEVICE=pdfwrite",
+    "-dAutoRotatePages=/None",
+    `-sOutputFile=${tiledPdf}`, ...tilePdfs,
+  ]);
+  console.log(
+    `  ${tiledPdf}\n      ${tiled.rows}×${tiled.cols} grid = ${tiled.pages.length} Letter pages, ` +
+    `frame ${outerW(spec)}×${outerH(spec)} mm`,
+  );
 }

@@ -7,6 +7,7 @@
 import { STANDARD_SPECS } from "./qrframe/generate";
 import { fitPaper } from "./qrframe/printLayout";
 import { outerH, outerW } from "./qrframe/spec";
+import { tiledPrintSvgs } from "./qrframe/tiledPrint";
 
 const LABELS: Record<string, string> = {
   std: "Standard",
@@ -35,6 +36,14 @@ const GROUPS: { heading: string; ids: string[] }[] = [
 
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */
 const href = (id: string) => `frames/qrframe-${id}-blank.pdf`;
+const tiledHref = (id: string) => `frames/qrframe-${id}-tiled.pdf`;
+
+/** Pre-compute which specs have tiled versions (too large for Letter). */
+const TILED_INFO: Record<string, { rows: number; cols: number; pages: number }> = {};
+for (const spec of STANDARD_SPECS) {
+  const tiled = tiledPrintSvgs(spec, { sample: false });
+  if (tiled) TILED_INFO[spec.id] = { rows: tiled.rows, cols: tiled.cols, pages: tiled.pages.length };
+}
 
 export function FramesPage() {
   return (
@@ -51,6 +60,13 @@ export function FramesPage() {
         printed at 96% makes every exported dimension 4% wrong. After printing,
         measure the opening against the size listed below — if it matches, you're
         good.
+      </div>
+
+      <div className="notice">
+        <strong>No large-format printer?</strong> The bigger frames also come as
+        "Letter pages" — the same frame split across multiple US Letter sheets
+        with overlap and alignment marks. Print them all, line up the crosshairs,
+        and tape together.
       </div>
 
       {GROUPS.map((group) => (
@@ -76,9 +92,16 @@ export function FramesPage() {
                         : "needs a large-format printer"}
                     </small>
                   </div>
-                  <a className="frame-dl" href={href(spec.id)} download>
-                    Download PDF
-                  </a>
+                  <div className="frame-actions">
+                    <a className="frame-dl" href={href(spec.id)} download>
+                      Download PDF
+                    </a>
+                    {TILED_INFO[spec.id] && (
+                      <a className="frame-dl frame-dl-tiled" href={tiledHref(spec.id)} download>
+                        Letter pages ({TILED_INFO[spec.id].pages} sheets)
+                      </a>
+                    )}
+                  </div>
                 </li>
               );
             })}
