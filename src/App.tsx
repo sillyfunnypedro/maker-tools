@@ -526,7 +526,9 @@ export default function App() {
   const set = <K extends keyof Params>(key: K) => (e: ChangeEvent<HTMLInputElement>) =>
     setParams((p) => ({ ...p, [key]: Number(e.target.value) }));
 
-  const reset = () => setParams(DEFAULT_PARAMS);
+  // Frame mode never shows the cells/lines toggle, so it can't recover from
+  // landing on "cells" — keep it pinned to "lines" here too (see pickTool).
+  const reset = () => setParams(mode === "frame" ? { ...DEFAULT_PARAMS, mode: "lines" } : DEFAULT_PARAMS);
 
   const pickTool = (t: Tool) => {
     // Start each tool from its own defaults. The two tools work on different
