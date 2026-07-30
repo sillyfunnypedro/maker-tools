@@ -60,6 +60,16 @@ export const STANDARD_SPECS: QrFrameSpec[] = [
   // Sized to use the full length of an 11x17 (Tabloid) sheet, not just fit within
   // it — outer 262x412mm on a 279.4x431.8mm sheet, ~9mm margin all round.
   { id: "tabloid", innerW: 215, innerH: 365, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+  // Sized to use the full length of an A4 sheet (taller than Letter) — outer
+  // 194x281mm on a 210x297mm sheet, 8mm margin all round.
+  { id: "a4", innerW: 152, innerH: 239, scaleMm: 90, marginL: 34, marginT: 34, marginR: 8, marginB: 8, qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4 },
+  // Sized to use an A3 sheet — outer 283x402mm on a 297x420mm sheet.
+  { id: "a3", innerW: 236, innerH: 355, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+  // Sized to use an ANSI C sheet (17x22in, the size above Tabloid) — outer
+  // 413x541mm on a 431.8x558.8mm sheet.
+  { id: "ansiC", innerW: 366, innerH: 494, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+  // Sized to use an A2 sheet — outer 402x576mm on a 420x594mm sheet.
+  { id: "a2", innerW: 355, innerH: 529, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
 ];
 
 /** Current format: `magic;id;innerW;innerH;scaleMm`, layout looked up by id. */

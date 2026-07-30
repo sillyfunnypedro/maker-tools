@@ -21,11 +21,17 @@ export interface Paper {
   h: number;
 }
 
-/** Papers we auto-fit to, smallest first. */
+/** Papers we auto-fit to, smallest (by area) first. Mixes ANSI/US and ISO A
+ *  sizes so whichever is actually smaller wins, regardless of which system a
+ *  given frame was designed against. */
 export const PAPERS: Paper[] = [
   { name: "Letter", w: 215.9, h: 279.4 },
+  { name: "A4", w: 210, h: 297 },
   { name: "Legal", w: 215.9, h: 355.6 },
   { name: "Tabloid", w: 279.4, h: 431.8 },
+  { name: "A3", w: 297, h: 420 },
+  { name: "ANSI C", w: 431.8, h: 558.8 },
+  { name: "A2", w: 420, h: 594 },
 ];
 
 export interface Fit {

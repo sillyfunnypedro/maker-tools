@@ -84,7 +84,7 @@ identical at every setting.
 
 ## Printable SketchFrames
 
-Blank frames in six sizes, as PDFs at true scale. Print one and draw in the
+Blank frames in ten sizes, as PDFs at true scale. Print one and draw in the
 opening, or cut the opening out and lay the sheet over something you already
 have.
 
@@ -94,8 +94,12 @@ have.
 | `half` | 77×86 mm | Letter |
 | `square100` | 100×100 mm | Letter |
 | `large` | 221×284 mm | Tabloid (11×17 in) |
-| `bigsquare` | 251×251 mm | needs large-format printing |
+| `bigsquare` | 251×251 mm | ANSI C (17×22 in) |
 | `tabloid` | 215×365 mm | Tabloid (11×17 in) — uses the sheet's full length |
+| `a4` | 152×239 mm | A4 — uses the sheet's full length |
+| `a3` | 236×355 mm | A3 |
+| `ansiC` | 366×494 mm | ANSI C (17×22 in) |
+| `a2` | 355×529 mm | A2 |
 
 The border around each opening is trimmed to the minimum that still scans
 reliably — every sheet is the same overall size as before, just with less

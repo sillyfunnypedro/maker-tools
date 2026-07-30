@@ -15,6 +15,10 @@ const LABELS: Record<string, string> = {
   large: "Large",
   bigsquare: "Big square",
   tabloid: "Tabloid (11×17 in)",
+  a4: "A4",
+  a3: "A3",
+  ansiC: "ANSI C (17×22 in)",
+  a2: "A2",
 };
 
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */
