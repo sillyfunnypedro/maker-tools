@@ -101,6 +101,36 @@ describe("test vs blank sheets", () => {
   });
 });
 
+describe("page label", () => {
+  it("adds a <text> for the label and omits it entirely when there's none", () => {
+    const std = STANDARD_SPECS.find((s) => s.id === "std")!;
+    const withLabel = printPageSvg(std, { sample: false, label: "Jamie · example.com" }).svg;
+    const without = printPageSvg(std, { sample: false }).svg;
+    expect(withLabel).toContain("<text");
+    expect(withLabel).toContain("Jamie · example.com");
+    expect(without).not.toContain("<text");
+    // Everything else about the page must stay identical (ignore incidental
+    // whitespace left behind by stripping the <text> line).
+    const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+    expect(norm(withLabel.replace(/<text[\s\S]*?<\/text>\n?/, ""))).toBe(norm(without));
+  });
+
+  it("escapes XML-special characters instead of injecting markup", () => {
+    const std = STANDARD_SPECS.find((s) => s.id === "std")!;
+    const svg = printPageSvg(std, { sample: false, label: `<script>&"'</script>` }).svg;
+    expect(svg).not.toContain("<script>");
+    expect(svg).toContain("&lt;script&gt;&amp;&quot;&apos;&lt;/script&gt;");
+  });
+
+  it("skips the label rather than overlap the art when there's no margin to hold it", () => {
+    // A spec whose outer size exceeds every standard paper gets a page sized to
+    // the artwork itself — zero margin, so there's nowhere safe to put text.
+    const noRoom = { ...STANDARD_SPECS.find((s) => s.id === "a2")!, innerW: 5000, innerH: 5000 };
+    const svg = printPageSvg(noRoom, { sample: false, label: "test" }).svg;
+    expect(svg).not.toContain("<text");
+  });
+});
+
 describe.skipIf(!hasRsvg())("blank sheet round-trip (empty opening still detects)", () => {
   const dir = mkdtempSync(join(tmpdir(), "qrblank-"));
   for (const spec of STANDARD_SPECS) {

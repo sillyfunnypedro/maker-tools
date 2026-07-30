@@ -40,6 +40,12 @@ export interface FrameOptions {
    * the registration dots, all of which live in the margins.
    */
   sample?: boolean;
+  /**
+   * Text printed in the page's blank margin above the frame — e.g. a name and/or
+   * a URL. Ignored here: it's positioned relative to the *page*, not the frame
+   * artwork, so only `printPageSvg` (which knows the page size) renders it.
+   */
+  label?: string;
 }
 
 export function frameMarks(spec: QrFrameSpec, opts: FrameOptions = {}): string {

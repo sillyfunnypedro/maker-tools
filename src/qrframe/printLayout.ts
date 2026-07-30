@@ -65,6 +65,14 @@ export interface PageLayout {
   marginMm: number;
 }
 
+/** Escape text for safe embedding in SVG/XML — the label is user-typed, and this
+ *  SVG can end up handed straight to the DOM (a print tab), so unescaped input
+ *  would be a script-injection hole, not just a rendering glitch. */
+function escapeXml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
+}
+
 export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLayout {
   const w = outerW(spec), h = outerH(spec);
   const fit = fitPaper(w, h);
@@ -73,11 +81,21 @@ export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLa
   const pageW = fit ? fit.pageW : w;
   const pageH = fit ? fit.pageH : h;
   const dx = (pageW - w) / 2, dy = (pageH - h) / 2;
+  // The label sits in the top margin, so it needs that margin to exist at all —
+  // skip it rather than overlap the frame art on a page with no room to spare.
+  const label = opts.label?.trim();
+  const fontSize = Math.max(3, Math.min(6, dy * 0.3));
+  const labelSvg = label && dy >= 4
+    ? `  <text x="${(pageW / 2).toFixed(2)}" y="${(dy / 2).toFixed(2)}" ` +
+      `font-family="sans-serif" font-size="${fontSize.toFixed(2)}" text-anchor="middle" ` +
+      `dominant-baseline="middle" fill="black">${escapeXml(label)}</text>\n`
+    : "";
   const svg =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" ` +
     `width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">\n` +
     `  <rect x="0" y="0" width="${pageW}" height="${pageH}" fill="white"/>\n` +
+    labelSvg +
     `  <g transform="translate(${dx.toFixed(3)},${dy.toFixed(3)})">\n` +
     `    ${frameMarks(spec, opts)}\n` +
     `  </g>\n</svg>\n`;

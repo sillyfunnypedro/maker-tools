@@ -4,9 +4,10 @@
 // the sizes and paper advice can't drift from the PDFs that `npm run emit:print`
 // actually produced. Only the blank sheets are published; the calibration sheets
 // (with the reference square and circle) stay in qr-preview/ for our own testing.
+import { useState } from "react";
 import { STANDARD_SPECS } from "./qrframe/generate";
-import { fitPaper } from "./qrframe/printLayout";
-import { outerH, outerW } from "./qrframe/spec";
+import { fitPaper, printPageSvg } from "./qrframe/printLayout";
+import { outerH, outerW, type QrFrameSpec } from "./qrframe/spec";
 import { tiledPrintSvgs } from "./qrframe/tiledPrint";
 
 const LABELS: Record<string, string> = {
@@ -45,7 +46,32 @@ for (const spec of STANDARD_SPECS) {
   if (tiled) TILED_INFO[spec.id] = { rows: tiled.rows, cols: tiled.cols, pages: tiled.pages.length };
 }
 
+/**
+ * Opens a new tab holding just the labelled page SVG and prints it — no PDF
+ * step, since `printPageSvg`'s output already declares its true mm size, and
+ * that's exactly what a browser print dialog (at 100%, no "fit to page")
+ * honours. Kept separate from the pre-built PDF links below: those stay
+ * byte-identical to what `emit:print` shipped, since a label is per-user and
+ * can't be baked into a static file.
+ */
+function printLabeled(spec: QrFrameSpec, label: string) {
+  const layout = printPageSvg(spec, { sample: false, label });
+  const win = window.open("", "_blank");
+  if (!win) return; // popup blocked — nothing sensible to fall back to here
+  win.document.write(
+    `<!doctype html><html><head><title>${spec.id}</title><style>` +
+    `@page { size: ${layout.pageW}mm ${layout.pageH}mm; margin: 0; }` +
+    `html, body { margin: 0; padding: 0; }` +
+    `</style></head><body>${layout.svg}</body></html>`,
+  );
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
 export function FramesPage() {
+  const [label, setLabel] = useState("");
+
   return (
     <div className="frames-page">
       <p className="sub">
@@ -61,6 +87,17 @@ export function FramesPage() {
         measure the opening against the size listed below — if it matches, you're
         good.
       </div>
+
+      <label className="frame-label-input">
+        Your name (optional) — adds a <strong>Print with label</strong> button
+        below that prints your name and this app's address at the top of the sheet.
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. Jamie's Room"
+        />
+      </label>
 
       <div className="notice">
         <strong>No large-format printer?</strong> The bigger frames also come as
@@ -100,6 +137,15 @@ export function FramesPage() {
                       <a className="frame-dl frame-dl-tiled" href={tiledHref(spec.id)} download>
                         Letter pages ({TILED_INFO[spec.id].pages} sheets)
                       </a>
+                    )}
+                    {label.trim() && (
+                      <button
+                        type="button"
+                        className="frame-dl"
+                        onClick={() => printLabeled(spec, `${label.trim()} · ${window.location.host}`)}
+                      >
+                        Print with label
+                      </button>
                     )}
                   </div>
                 </li>
