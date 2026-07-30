@@ -92,7 +92,7 @@ have.
 | --- | --- | --- |
 | `std` | 154×172 mm | Letter |
 | `half` | 77×86 mm | Letter |
-| `square100` | 102.5×102.5 mm | Letter |
+| `square100` | 100×100 mm | Letter |
 | `large` | 221×284 mm | Tabloid (11×17 in) |
 | `bigsquare` | 251×251 mm | needs large-format printing |
 | `tabloid` | 215×365 mm | Tabloid (11×17 in) — uses the sheet's full length |

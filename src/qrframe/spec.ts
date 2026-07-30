@@ -54,7 +54,7 @@ export interface QrFrameSpec {
 export const STANDARD_SPECS: QrFrameSpec[] = [
   { id: "std", innerW: 154, innerH: 172, scaleMm: 90, marginL: 34, marginT: 34, marginR: 8, marginB: 8, qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4 },
   { id: "half", innerW: 77, innerH: 86, scaleMm: 45, marginL: 26, marginT: 26, marginR: 7, marginB: 7, qrX: 3, qrY: 3, qrSize: 20, dotSpacing: 11, dotD: 3 },
-  { id: "square100", innerW: 102.5, innerH: 102.5, scaleMm: 60, marginL: 28, marginT: 28, marginR: 7.5, marginB: 7.5, qrX: 3, qrY: 3, qrSize: 22, dotSpacing: 12, dotD: 3.5 },
+  { id: "square100", innerW: 100, innerH: 100, scaleMm: 60, marginL: 28, marginT: 28, marginR: 7.5, marginB: 7.5, qrX: 3, qrY: 3, qrSize: 22, dotSpacing: 12, dotD: 3.5 },
   { id: "large", innerW: 221, innerH: 284, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
   { id: "bigsquare", innerW: 251, innerH: 251, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
   // Sized to use the full length of an 11x17 (Tabloid) sheet, not just fit within
