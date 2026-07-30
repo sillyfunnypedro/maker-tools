@@ -14,6 +14,7 @@ const LABELS: Record<string, string> = {
   square100: "100 mm square",
   large: "Large",
   bigsquare: "Big square",
+  tabloid: "Tabloid (11×17 in)",
 };
 
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */

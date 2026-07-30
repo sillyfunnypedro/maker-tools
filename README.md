@@ -84,14 +84,25 @@ identical at every setting.
 
 ## Printable SketchFrames
 
-Blank frames in five sizes, as PDFs at true scale. Print one and draw in the
+Blank frames in six sizes, as PDFs at true scale. Print one and draw in the
 opening, or cut the opening out and lay the sheet over something you already
 have.
+
+| Size | Opening | Paper |
+| --- | --- | --- |
+| `std` | 150×168 mm | Letter |
+| `half` | 75×84 mm | Letter |
+| `square100` | 100×100 mm | Letter |
+| `large` | 216×279 mm | Tabloid (11×17 in) |
+| `bigsquare` | 246×246 mm | needs large-format printing |
+| `tabloid` | 210×360 mm | Tabloid (11×17 in) — uses the sheet's full length |
 
 **Print at 100%** — turn off "Fit to page". Every measurement the app produces
 comes from the printed size, so a sheet printed at 96% makes every exported
 dimension 4% wrong. After printing, measure the opening against the size listed
-on the page.
+on the page. At a copy shop, ask for the paper size in the table above (e.g.
+`tabloid` needs **11×17 in / Tabloid**) printed at **actual size / 100%**, not
+"fit to page" or "scale to fit."
 
 Regenerate the PDFs with `npm run emit:print` (needs `rsvg-convert` and
 Ghostscript). Blank sheets land in `public/frames/` and ship with the build; the

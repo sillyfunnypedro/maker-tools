@@ -50,6 +50,9 @@ export const STANDARD_SPECS: QrFrameSpec[] = [
   { id: "square100", innerW: 100, innerH: 100, scaleMm: 60, marginL: 28, marginT: 28, marginR: 10, marginB: 10, qrX: 3, qrY: 3, qrSize: 22, dotSpacing: 12, dotD: 3.5 },
   { id: "large", innerW: 216, innerH: 279, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
   { id: "bigsquare", innerW: 246, innerH: 246, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
+  // Sized to use the full length of an 11x17 (Tabloid) sheet, not just fit within
+  // it — outer 262x412mm on a 279.4x431.8mm sheet, ~9mm margin all round.
+  { id: "tabloid", innerW: 210, innerH: 360, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
 ];
 
 /** Current format: `magic;id;innerW;innerH;scaleMm`, layout looked up by id. */
