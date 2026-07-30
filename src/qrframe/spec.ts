@@ -31,10 +31,19 @@ export interface QrFrameSpec {
   dotD: number;       // dot diameter
 }
 
-/** The standard frame sizes (mm). Wide top-left margins hold the QR clear of the
- *  scanning window; right/bottom are narrow dot strips. Also the decode-time
- *  registry: `decodePayload` looks up everything but id/innerW/innerH/scaleMm
- *  here, keyed by id. */
+/**
+ * The standard frame sizes (mm). Wide top-left margins hold the QR clear of the
+ * scanning window; right/bottom are narrow dot strips. Also the decode-time
+ * registry: `decodePayload` looks up everything but id/innerW/innerH/scaleMm
+ * here, keyed by id.
+ *
+ * A sheet printed today only carries its id + size; it trusts this table for
+ * the rest. So an existing entry's layout numbers (margins, qrX/Y/qrSize,
+ * dotSpacing, dotD) must never change once a sheet with that id might be in
+ * print — a physical sheet has no way to tell the app its numbers changed
+ * underneath it. If a size ever needs new numbers, give it a new id instead
+ * (or bump PAYLOAD_MAGIC/PAYLOAD_MAGIC_LEGACY and start a new registry).
+ */
 export const STANDARD_SPECS: QrFrameSpec[] = [
   { id: "std", innerW: 150, innerH: 168, scaleMm: 90, marginL: 34, marginT: 34, marginR: 12, marginB: 12, qrX: 4, qrY: 4, qrSize: 27, dotSpacing: 14, dotD: 4 },
   { id: "half", innerW: 75, innerH: 84, scaleMm: 45, marginL: 26, marginT: 26, marginR: 9, marginB: 9, qrX: 3, qrY: 3, qrSize: 20, dotSpacing: 11, dotD: 3 },
@@ -43,7 +52,12 @@ export const STANDARD_SPECS: QrFrameSpec[] = [
   { id: "bigsquare", innerW: 246, innerH: 246, scaleMm: 150, marginL: 38, marginT: 38, marginR: 14, marginB: 14, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
 ];
 
-export const PAYLOAD_MAGIC = "SGF1";
+/** Current format: `magic;id;innerW;innerH;scaleMm`, layout looked up by id. */
+export const PAYLOAD_MAGIC = "SGF2";
+/** Original format: `magic;id;innerW;innerH;scaleMm;marginL;marginT;marginR;
+ *  marginB;qrX;qrY;qrSize;dotSpacing;dotD` — fully self-describing, no lookup.
+ *  Kept decodable so sheets printed before the SGF2 switch still scan. */
+const PAYLOAD_MAGIC_LEGACY = "SGF1";
 
 export function encodePayload(s: QrFrameSpec): string {
   return [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm].join(";");
@@ -51,6 +65,14 @@ export function encodePayload(s: QrFrameSpec): string {
 
 export function decodePayload(text: string): QrFrameSpec | null {
   const p = text.split(";");
+  if (p[0] === PAYLOAD_MAGIC_LEGACY && p.length >= 14) {
+    const n = (i: number) => Number(p[i]);
+    return {
+      id: p[1], innerW: n(2), innerH: n(3), scaleMm: n(4),
+      marginL: n(5), marginT: n(6), marginR: n(7), marginB: n(8),
+      qrX: n(9), qrY: n(10), qrSize: n(11), dotSpacing: n(12), dotD: n(13),
+    };
+  }
   if (p[0] !== PAYLOAD_MAGIC || p.length < 5) return null;
   const layout = STANDARD_SPECS.find((spec) => spec.id === p[1]);
   if (!layout) return null;
