@@ -11,6 +11,7 @@ import { outerH, outerW } from "./qrframe/spec";
 const LABELS: Record<string, string> = {
   std: "Standard",
   half: "Half",
+  square50: "50 mm square",
   square100: "100 mm square",
   large: "Large",
   bigsquare: "Big square",
