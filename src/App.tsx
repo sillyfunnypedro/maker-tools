@@ -185,7 +185,12 @@ export default function App() {
     setFramePpmm(ppmm);
     const crop = rectifyOpening(
       sourceRef.current, frameResult.Hmm2px, spec.marginL, spec.marginT,
-      spec.innerW, spec.innerH, ppmm, 2, // 2mm inset trims the frame rim
+      // 3mm inset: the frame sheet sits raised above the drawing, so under angled
+      // light its cut edge casts a shadow band onto the paper below, right at the
+      // opening's boundary. 2mm wasn't always enough to clear it (confirmed against
+      // a real photo where the shadow traced in as a spurious line); 3mm was the
+      // smallest inset in testing that fully cleared it.
+      spec.innerW, spec.innerH, ppmm, 3,
     );
     // Flatten illumination (grayscale + background normalize) so shadows/uneven
     // light don't survive as false lines, then process that.
