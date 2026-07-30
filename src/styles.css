@@ -380,6 +380,11 @@ button.primary {
   font-size: 14px;
 }
 .frames-page .notice strong { color: var(--text); }
+.frame-group-heading {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin: 20px 0 8px;
+}
+.frame-group-heading:first-child { margin-top: 0; }
 .frame-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .frame-list li {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

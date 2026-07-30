@@ -94,12 +94,25 @@ have.
 | `half` | 77×86 mm | Letter |
 | `square50` | 50×50 mm | Letter |
 | `square100` | 100×100 mm | Letter |
+
+Large prints are each maxed out for one specific paper standard, so they're
+split by region — pick the group whose paper you can actually get.
+
+**North America (Tabloid / ANSI C paper):**
+
+| Size | Opening | Paper |
+| --- | --- | --- |
 | `large` | 221×284 mm | Tabloid (11×17 in) |
 | `bigsquare` | 251×251 mm | ANSI C (17×22 in) |
 | `tabloid` | 215×365 mm | Tabloid (11×17 in) — uses the sheet's full length |
+| `ansiC` | 366×494 mm | ANSI C (17×22 in) |
+
+**Rest of world (A4 / A3 / A2 paper):**
+
+| Size | Opening | Paper |
+| --- | --- | --- |
 | `a4` | 152×239 mm | A4 — uses the sheet's full length |
 | `a3` | 236×355 mm | A3 |
-| `ansiC` | 366×494 mm | ANSI C (17×22 in) |
 | `a2` | 355×529 mm | A2 |
 
 The border around each opening is trimmed to the minimum that still scans

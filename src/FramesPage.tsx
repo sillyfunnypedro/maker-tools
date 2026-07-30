@@ -22,6 +22,17 @@ const LABELS: Record<string, string> = {
   a2: "A2",
 };
 
+/**
+ * The large-format sizes are each maxed out for one specific paper standard,
+ * so a NA reader and an ISO-paper reader want different halves of the list.
+ * The regular sizes (fit comfortably on either Letter or A4) aren't split.
+ */
+const GROUPS: { heading: string | null; ids: string[] }[] = [
+  { heading: null, ids: ["std", "half", "square50", "square100"] },
+  { heading: "Large prints — North America (Tabloid / ANSI C paper)", ids: ["large", "bigsquare", "tabloid", "ansiC"] },
+  { heading: "Large prints — rest of world (A4 / A3 / A2 paper)", ids: ["a4", "a3", "a2"] },
+];
+
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */
 const href = (id: string) => `frames/qrframe-${id}-blank.pdf`;
 
@@ -42,31 +53,38 @@ export function FramesPage() {
         good.
       </div>
 
-      <ul className="frame-list">
-        {STANDARD_SPECS.map((spec) => {
-          const w = outerW(spec), h = outerH(spec);
-          const fit = fitPaper(w, h);
-          return (
-            <li key={spec.id}>
-              <div className="frame-meta">
-                <strong>{LABELS[spec.id] ?? spec.id}</strong>
-                <span className="frame-size">
-                  opening {spec.innerW} × {spec.innerH} mm
-                </span>
-                <small>
-                  sheet {w} × {h} mm ·{" "}
-                  {fit
-                    ? `fits ${fit.paper.name} ${fit.orientation}`
-                    : "needs a large-format printer"}
-                </small>
-              </div>
-              <a className="frame-dl" href={href(spec.id)} download>
-                Download PDF
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+      {GROUPS.map((group) => (
+        <section key={group.heading ?? "standard"}>
+          {group.heading && <h3 className="frame-group-heading">{group.heading}</h3>}
+          <ul className="frame-list">
+            {group.ids.map((id) => {
+              const spec = STANDARD_SPECS.find((s) => s.id === id);
+              if (!spec) return null;
+              const w = outerW(spec), h = outerH(spec);
+              const fit = fitPaper(w, h);
+              return (
+                <li key={spec.id}>
+                  <div className="frame-meta">
+                    <strong>{LABELS[spec.id] ?? spec.id}</strong>
+                    <span className="frame-size">
+                      opening {spec.innerW} × {spec.innerH} mm
+                    </span>
+                    <small>
+                      sheet {w} × {h} mm ·{" "}
+                      {fit
+                        ? `fits ${fit.paper.name} ${fit.orientation}`
+                        : "needs a large-format printer"}
+                    </small>
+                  </div>
+                  <a className="frame-dl" href={href(spec.id)} download>
+                    Download PDF
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
 
       <p className="hint">
         <a href="frames/qrframes-blank.pdf" download>
