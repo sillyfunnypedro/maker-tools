@@ -39,7 +39,7 @@ for (const variant of VARIANTS) {
   console.log(`\n${variant.name} sheets -> ${OUT}/`);
   for (const spec of STANDARD_SPECS) {
     const label = variant.name === "blank"
-      ? `Maker-Tools by Juancho ${spec.innerW}×${spec.innerH}`
+      ? `SketchFrame by Juancho ${spec.innerW}mm×${spec.innerH}mm`
       : undefined;
     const layout = printPageSvg(spec, { sample: variant.sample, label });
     // Intermediate SVGs always stay internal — public/ is copied verbatim into
