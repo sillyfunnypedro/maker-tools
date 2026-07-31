@@ -105,12 +105,24 @@ header h1 {
   fill: none; stroke: #000; stroke-width: 0.3;
   stroke-linecap: round; stroke-linejoin: round;
 }
+.line-editor-kept.area-fill {
+  fill: #ddd; stroke: #000; stroke-width: 0.3;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .line-editor-excluded {
   fill: none; stroke: #e5484d; stroke-width: 0.35; stroke-dasharray: 1.2 1;
   stroke-linecap: round; stroke-linejoin: round;
 }
+.line-editor-excluded.area-fill {
+  fill: rgba(229, 72, 77, 0.15); stroke: #e5484d; stroke-width: 0.35; stroke-dasharray: 1.2 1;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .line-editor-selected {
   fill: none; stroke: #3b82f6; stroke-width: 0.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.line-editor-selected.area-fill {
+  fill: rgba(59, 130, 246, 0.15); stroke: #3b82f6; stroke-width: 0.4;
   stroke-linecap: round; stroke-linejoin: round;
 }
 .line-editor-stroke:hover .line-editor-kept { stroke: #7db4ff; }

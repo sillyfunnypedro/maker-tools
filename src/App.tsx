@@ -961,11 +961,12 @@ export default function App() {
                           <path
                             d={d}
                             className={
-                              excluded
+                              (excluded
                                 ? "line-editor-excluded"
                                 : selected
                                   ? "line-editor-selected"
-                                  : "line-editor-kept"
+                                  : "line-editor-kept")
+                              + (detectMode === "areas" ? " area-fill" : "")
                             }
                           />
                         </g>
