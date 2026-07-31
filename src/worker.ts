@@ -1,7 +1,7 @@
 // Runs the image pipeline off the main thread so the UI stays responsive.
 import { process, computeMasks, type Params } from "./processing";
 import { traceStrokeGroups, traceAreaGroups, type StrokeGroup } from "./svg";
-import { traceContours, thresholdMask, removeBorderRegions } from "./contour";
+import { traceContours, thresholdMask, removeBorderRegions, smoothContour } from "./contour";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
 /** Render filled silhouettes as black on transparent (areas mode raster preview). */
@@ -46,6 +46,8 @@ export interface TraceRequest extends BaseRequest {
   oy: number;
   /** "lines" = centerline tracing; "areas" = contour outlines of filled regions. */
   detectMode: "lines" | "areas";
+  /** For areas mode: contour smoothing iterations (0 = raw pixel contour). */
+  areaSmoothing?: number;
 }
 export type WorkerRequest =
   | PngRequest
@@ -93,10 +95,16 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     let px: number;
 
     if (req.detectMode === "areas") {
-      // Area mode: threshold -> remove border noise -> contour trace -> mm conversion.
+      // Area mode: threshold -> remove border noise -> contour trace -> smooth -> mm conversion.
       const mask = thresholdMask(data, req.width, req.height, req.params.bgThresh);
       removeBorderRegions(mask, req.width, req.height);
-      const contours = traceContours(mask, req.width, req.height, req.params.minBlob);
+      let contours = traceContours(mask, req.width, req.height, req.params.minBlob);
+      // Smooth the contours in pixel space before converting to mm.
+      // The slider value (0-3mm) maps to iterations: 0mm = 0 iters, 3mm = ~12 iters.
+      const iters = Math.round((req.areaSmoothing ?? 0) * 4);
+      if (iters > 0) {
+        contours = contours.map((c) => smoothContour(c, iters));
+      }
       ({ groups, mmPerPx: px } = traceAreaGroups(contours, req.width, req.height, req.H, req.ox, req.oy));
     } else {
       // Lines mode: skeleton -> centerline trace.

@@ -244,3 +244,36 @@ export function equalizeHistogram(
   }
   return out;
 }
+
+/**
+ * Smooth a closed contour by averaging each point with its neighbours.
+ * Iterations controls how many passes (more = smoother). The radius sets
+ * how many neighbours on each side contribute to the average.
+ *
+ * This is a simple moving-average applied on a closed ring, preserving the
+ * overall shape while removing pixel-level jitter. Unlike RDP, it doesn't
+ * remove points — it repositions them, so there are still enough for the
+ * Bezier fitting to produce curves rather than straight segments.
+ */
+export function smoothContour(
+  pts: [number, number][], iterations: number, radius = 2,
+): [number, number][] {
+  if (pts.length < 5 || iterations <= 0) return pts;
+  let cur = pts;
+  for (let iter = 0; iter < iterations; iter++) {
+    const next: [number, number][] = new Array(cur.length);
+    const n = cur.length;
+    for (let i = 0; i < n; i++) {
+      let sx = 0, sy = 0, count = 0;
+      for (let j = -radius; j <= radius; j++) {
+        const idx = ((i + j) % n + n) % n;
+        sx += cur[idx][0];
+        sy += cur[idx][1];
+        count++;
+      }
+      next[i] = [sx / count, sy / count];
+    }
+    cur = next;
+  }
+  return cur;
+}

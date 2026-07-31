@@ -491,11 +491,12 @@ export default function App() {
         ox: 0,
         oy: 0,
         detectMode,
+        areaSmoothing: detectMode === "areas" ? areaSmoothing : undefined,
       };
       worker.postMessage(req, [copy.buffer]);
     }, 180);
     return () => clearTimeout(t);
-  }, [mode, frameSource, params, framePpmm, detectMode]);
+  }, [mode, frameSource, params, framePpmm, detectMode, areaSmoothing]);
 
   // Render the traced groups into the current view (rotate/zoom/pan). Pure,
   // synchronous coordinate math — see renderStrokeGroups — so this can recompute
@@ -504,7 +505,9 @@ export default function App() {
   const cncView = useMemo(() => {
     const spec = frameResult?.detected ? frameResult.spec : undefined;
     if (!strokeGroups || !spec) return null;
-    const simplify = detectMode === "areas" ? areaSmoothing : undefined;
+    // For areas mode, keep RDP tolerance low (0.15mm) — the smoothing is handled
+    // by the contour point-averaging in the worker, not by removing points.
+    const simplify = detectMode === "areas" ? 0.15 : undefined;
     return renderStrokeGroups(
       strokeGroups, groupsMmPerPx, spec.innerW, spec.innerH,
       simplify, undefined, undefined,
