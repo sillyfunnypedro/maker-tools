@@ -4,23 +4,20 @@ import { traceStrokeGroups, traceAreaGroups, type StrokeGroup } from "./svg";
 import { traceContours, thresholdMask, removeBorderRegions } from "./contour";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
-/** Render contour outlines as black on transparent (areas mode raster preview). */
+/** Render filled silhouettes as black on transparent (areas mode raster preview). */
 function processAreas(
   data: Uint8ClampedArray, w: number, h: number, params: Params,
 ): Uint8ClampedArray {
   const mask = thresholdMask(data, w, h, params.bgThresh);
   removeBorderRegions(mask, w, h);
-  const contours = traceContours(mask, w, h, params.minBlob);
 
-  // Draw contours as black lines on transparent background.
-  const out = new Uint8ClampedArray(w * h * 4); // all zeros = transparent
-  for (const contour of contours) {
-    for (const [x, y] of contour) {
-      if (x >= 0 && x < w && y >= 0 && y < h) {
-        const off = (y * w + x) * 4;
-        out[off] = out[off + 1] = out[off + 2] = 0; // black
-        out[off + 3] = 255; // opaque
-      }
+  // Render the mask directly: foreground pixels are black, background transparent.
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    if (mask[i]) {
+      const off = i * 4;
+      out[off] = out[off + 1] = out[off + 2] = 0; // black
+      out[off + 3] = 255;
     }
   }
   return out;
