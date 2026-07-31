@@ -426,19 +426,77 @@ function stitchRuns(runs: Pt[][], tol: number): { pts: Pt[]; closed: boolean }[]
  * true millimetre size, so a 60 mm square still measures 60 mm at any zoom. What
  * falls outside the window is clipped, exactly like anything outside the opening.
  */
-export function buildCncStrokedSvg(
-  skeleton: Uint8Array, w: number, h: number,
-  H: Mat3, ox: number, oy: number, openW: number, openH: number,
-  strokeMm = 0.3, simplifyMm = 0.1, minLenMm = 2, minSpanMm = 1.5,
-  rotateDeg = 0, zoom = 1, panXMm = 0, panYMm = 0,
-): string {
+export interface StrokeGroup { pts: Pt[]; closed: boolean }
+
+/**
+ * Pixel-space skeleton -> mm-space stroke groups (closed loops + joined-up open
+ * runs) — the same "one drawn line" units `buildCncStrokedSvg` traces, but *before*
+ * rotate/zoom/pan are applied, so a group's index is stable across all three.
+ *
+ * That stability isn't incidental: stitching runs together only ever compares
+ * Euclidean distances between endpoints, and rotation + translation both preserve
+ * distances exactly, so which runs join to which is identical whichever order you
+ * apply them in. (Zoom never touches these coordinates at all — it only changes the
+ * clip window later.) That means a caller can trace once per (image, params) —
+ * exactly the lifecycle the raster preview already has — and re-derive the view for
+ * any rotate/zoom/pan from the cached groups with `renderStrokeGroups`, with no
+ * retrace and no risk of a group's identity drifting out from under it. An
+ * interactive line editor needs exactly that: "exclude group 5" has to keep meaning
+ * the same drawn line no matter how the view is nudged afterward.
+ */
+export function traceStrokeGroups(
+  skeleton: Uint8Array, w: number, h: number, H: Mat3, ox: number, oy: number,
+): { groups: StrokeGroup[]; mmPerPx: number } {
   const polylines = chainStrokes(mergePolylines(traceSkeleton(skeleton, w, h), 12, 12, 16));
   const px = mmPerPx(H);
-  const tol = Math.max(simplifyMm, px);
   // A few pixels of slack: enough to bridge the one-pixel breaks the tracer
   // leaves, far below any real gap in a drawing.
   const stitchTol = Math.max(3 * px, 0.25);
-  const paths: string[] = [];
+
+  // Split into already-closed loops and open runs; only the open ones need
+  // stitching back together.
+  const loops: StrokeGroup[] = [];
+  const runs: Pt[][] = [];
+  for (const pl of polylines) {
+    const mm = pl.map((p) => pxToMm(H, p, ox, oy));
+    if (isClosedMm(mm)) loops.push({ pts: mm.slice(0, -1), closed: true });
+    else runs.push(mm);
+  }
+
+  return { groups: [...loops, ...stitchRuns(runs, stitchTol)], mmPerPx: px };
+}
+
+/**
+ * Render view-independent stroke groups (from `traceStrokeGroups`) into the current
+ * view: straighten, crop to a 1/zoom window, pan, clip to it, simplify and smooth.
+ * One entry per input group, at the same index, holding the 0+ finished path `d`
+ * strings that group produced there — usually one, occasionally more if clipping
+ * split it, none if it fell entirely outside the window. Keeping the per-group
+ * breakdown (rather than one flattened list) is what lets a caller line up "this
+ * path is part of group i" for highlighting/exclusion; export just flattens it.
+ *
+ * `rotateDeg` straightens a sheet that sat crooked in the frame; `zoom` crops to a
+ * smaller window — a way to cut off noise picked up near the opening's edge — and
+ * `panXMm`/`panYMm` slide that window around so the crop doesn't have to be
+ * centred. All three are applied here, to the finished millimetre coordinates,
+ * rather than by transforming the image before tracing: doing it to the raster
+ * would re-run the resample, the illumination flatten and the whole mask pipeline
+ * (iterative thinning included) on every nudge of a slider, and would re-derive
+ * the trace, so the lines could shift as you adjusted them. Transforming
+ * coordinates is exact, instant, and leaves the trace identical — cheap enough to
+ * run on every slider tick without a worker round-trip.
+ *
+ * Neither changes scale. Rotation is rigid, and zoom *crops* rather than
+ * magnifying: the page shrinks to the visible window while the geometry keeps its
+ * true millimetre size, so a 60 mm square still measures 60 mm at any zoom. What
+ * falls outside the window is clipped, exactly like anything outside the opening.
+ */
+export function renderStrokeGroups(
+  groups: StrokeGroup[], mmPerPxHint: number, openW: number, openH: number,
+  simplifyMm = 0.1, minLenMm = 2, minSpanMm = 1.5,
+  rotateDeg = 0, zoom = 1, panXMm = 0, panYMm = 0,
+): { strokes: string[][]; viewW: number; viewH: number } {
+  const tol = Math.max(simplifyMm, mmPerPxHint);
 
   // Straightening turns about the centre of the opening; zoom keeps a 1/zoom
   // window, and the pan offset says where that window sits. The exported page is
@@ -453,9 +511,8 @@ export function buildCncStrokedSvg(
   const offX = cx + panXMm - viewW / 2, offY = cy + panYMm - viewH / 2;
   const rot = (rotateDeg * Math.PI) / 180;
   const rc = Math.cos(rot), rs = Math.sin(rot);
-  const toMm = (p: Pt): Pt => {
-    const q = pxToMm(H, p, ox, oy);
-    let x = q[0], y = q[1];
+  const toView = (p: Pt): Pt => {
+    let x = p[0], y = p[1];
     if (rotateDeg !== 0) {
       const dx = x - cx, dy = y - cy;
       x = cx + dx * rc - dy * rs;
@@ -463,16 +520,6 @@ export function buildCncStrokedSvg(
     }
     return [x - offX, y - offY];
   };
-
-  // Split into already-closed loops and open runs; only the open ones need
-  // stitching back together.
-  const loops: Pt[][] = [];
-  const runs: Pt[][] = [];
-  for (const pl of polylines) {
-    const mm = pl.map(toMm);
-    if (isClosedMm(mm)) loops.push(mm.slice(0, -1));
-    else runs.push(mm);
-  }
 
   // Clipping to the window introduces vertices that lie exactly on its edge. They
   // are cut corners, not part of the drawn curve, and smoothing through them bows
@@ -483,28 +530,56 @@ export function buildCncStrokedSvg(
     p[0] <= EDGE_EPS || p[0] >= viewW - EDGE_EPS ||
     p[1] <= EDGE_EPS || p[1] >= viewH - EDGE_EPS;
 
-  const emit = (pts: Pt[], closed: boolean) => {
-    if (closed) {
+  const strokes: string[][] = groups.map(() => []);
+  groups.forEach((g, i) => {
+    const pts = g.pts.map(toView);
+    if (g.closed) {
       let p = clipClosed(pts, viewW, viewH);
       if (p.length < 3) return;
       p = rdpClosed(p, tol);
       if (p.length < 3 || isSpeck(p, minSpanMm, minLenMm)) return;
-      paths.push(bezierClosed(p, tol, onWindowEdge));
+      strokes[i].push(bezierClosed(p, tol, onWindowEdge));
     } else {
       for (let seg of clipOpen(pts, viewW, viewH)) {
         seg = rdp(seg, tol);
         if (seg.length < 2 || polyLenMm(seg) < minLenMm) continue;
-        paths.push(bezierOpen(seg, tol, onWindowEdge));
+        strokes[i].push(bezierOpen(seg, tol, onWindowEdge));
       }
     }
-  };
+  });
+  return { strokes, viewW, viewH };
+}
 
-  for (const l of loops) emit(l, true);
-  for (const s of stitchRuns(runs, stitchTol)) emit(s.pts, s.closed);
-
+/** Flatten a (typically already-filtered) per-group stroke list into one SVG doc. */
+export function strokesToSvg(
+  viewW: number, viewH: number, strokes: string[][], strokeMm = 0.3,
+): string {
   return svgDocMm(viewW, viewH,
     `  <path fill="none" stroke="#000000" stroke-width="${strokeMm}" ` +
-    `stroke-linecap="round" stroke-linejoin="round" d="${paths.join(" ")}"/>`);
+    `stroke-linecap="round" stroke-linejoin="round" d="${strokes.flat().join(" ")}"/>`);
+}
+
+/**
+ * Centerline strokes (open) in mm, for pen/engrave or single-line cuts.
+ *
+ * Convenience wrapper composing `traceStrokeGroups` + `renderStrokeGroups` +
+ * `strokesToSvg` for the common one-shot case (a plain export with nothing
+ * excluded). An interactive caller that needs per-group identity — a line editor,
+ * or anything re-deriving the view live as rotate/zoom/pan change — should call
+ * those three directly instead; see their docs for why the split exists.
+ */
+export function buildCncStrokedSvg(
+  skeleton: Uint8Array, w: number, h: number,
+  H: Mat3, ox: number, oy: number, openW: number, openH: number,
+  strokeMm = 0.3, simplifyMm = 0.1, minLenMm = 2, minSpanMm = 1.5,
+  rotateDeg = 0, zoom = 1, panXMm = 0, panYMm = 0,
+): string {
+  const { groups, mmPerPx } = traceStrokeGroups(skeleton, w, h, H, ox, oy);
+  const { strokes, viewW, viewH } = renderStrokeGroups(
+    groups, mmPerPx, openW, openH, simplifyMm, minLenMm, minSpanMm,
+    rotateDeg, zoom, panXMm, panYMm,
+  );
+  return strokesToSvg(viewW, viewH, strokes, strokeMm);
 }
 
 /** Stitch the raw skeleton trace back into continuous strokes. The trace splits

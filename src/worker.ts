@@ -1,6 +1,6 @@
 // Runs the image pipeline off the main thread so the UI stays responsive.
 import { process, computeMasks, type Params } from "./processing";
-import { buildCncStrokedSvg } from "./svg";
+import { traceStrokeGroups, type StrokeGroup } from "./svg";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
 interface BaseRequest {
@@ -16,26 +16,17 @@ export interface PngRequest extends BaseRequest {
 export interface DetectRequest extends BaseRequest {
   kind: "detect";
 }
-export interface CncRequest extends BaseRequest {
-  kind: "cnc";
-  /** pixel -> mm homography, opening origin (frame mm), and opening size (mm). */
+export interface TraceRequest extends BaseRequest {
+  kind: "trace";
+  /** pixel -> mm homography and opening origin (frame mm). */
   H: number[][];
   ox: number;
   oy: number;
-  openW: number;
-  openH: number;
-  /** Straighten the finished geometry by this much (degrees). */
-  rotateDeg: number;
-  /** Crop to a 1/zoom window of the opening (>= 1). */
-  zoom: number;
-  /** Where that window sits, as an offset from the opening's centre (mm). */
-  panXMm: number;
-  panYMm: number;
 }
 export type WorkerRequest =
   | PngRequest
   | DetectRequest
-  | CncRequest;
+  | TraceRequest;
 
 export interface PngResponse {
   kind: "png";
@@ -44,10 +35,11 @@ export interface PngResponse {
   width: number;
   height: number;
 }
-export interface SvgResponse {
-  kind: "svg";
+export interface TraceResponse {
+  kind: "trace";
   id: number;
-  svg: string;
+  groups: StrokeGroup[];
+  mmPerPx: number;
 }
 export interface DetectResponse {
   kind: "detect";
@@ -56,7 +48,7 @@ export interface DetectResponse {
 }
 export type WorkerResponse =
   | PngResponse
-  | SvgResponse
+  | TraceResponse
   | DetectResponse;
 
 export type DetectResult = QrFrameResult;
@@ -72,13 +64,14 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     return;
   }
 
-  if (req.kind === "cnc") {
+  if (req.kind === "trace") {
     const m = computeMasks(data, req.width, req.height, req.params);
-    const svg = buildCncStrokedSvg(
-      m.skeleton, m.w, m.h, req.H, req.ox, req.oy, req.openW, req.openH,
-      undefined, undefined, undefined, undefined,
-      req.rotateDeg, req.zoom, req.panXMm, req.panYMm);
-    const res: SvgResponse = { kind: "svg", id: req.id, svg };
+    // Traced view-independent (rotate/zoom/pan applied later, client-side — see
+    // renderStrokeGroups): only the source pixels and the tracing params can
+    // change these groups, so this only needs to re-run on the same lifecycle as
+    // the raster preview, not on every view tweak.
+    const { groups, mmPerPx } = traceStrokeGroups(m.skeleton, m.w, m.h, req.H, req.ox, req.oy);
+    const res: TraceResponse = { kind: "trace", id: req.id, groups, mmPerPx };
     (self as unknown as Worker).postMessage(res);
     return;
   }

@@ -14,12 +14,13 @@ import {
   type Params,
 } from "./processing";
 import type {
-  CncRequest,
   DetectRequest,
   DetectResult,
   PngRequest,
+  TraceRequest,
   WorkerResponse,
 } from "./worker";
+import { renderStrokeGroups, strokesToSvg, type StrokeGroup } from "./svg";
 import { rectifyOpening, flattenIllumination, otsuThreshold } from "./rectify";
 import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
@@ -103,11 +104,23 @@ export default function App() {
   // Where the crop window sits, offset from the opening's centre (mm).
   const [framePan, setFramePan] = useState({ x: 0, y: 0 });
   const dragFrom = useRef<{ x: number; y: number; pan: { x: number; y: number } } | null>(null);
+  // Set mid-drag so a pan (only live once zoomed in) doesn't also register as a
+  // stroke click when the pointer happens to come up over the line editor.
+  const dragMovedRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const reqIdRef = useRef(0); // latest live-preview (png) request
-  const svgIdRef = useRef(0);
-  const svgPending = useRef(new Map<number, (svg: string) => void>());
+  const traceIdRef = useRef(0); // shared id counter: detect + trace requests
+  const lastTraceId = useRef(0);
+
+  // Frame tool's line editor: stroke groups traced from the rectified crop, and
+  // which of them the user has clicked off. Groups are view-independent (rotate/
+  // zoom/pan are applied client-side — see svg.ts), so they only need retracing
+  // when the source crop or the tracing params change, not on a view tweak, and
+  // `excludedStrokes` only needs resetting alongside them, not on every render.
+  const [strokeGroups, setStrokeGroups] = useState<StrokeGroup[] | null>(null);
+  const [groupsMmPerPx, setGroupsMmPerPx] = useState(0);
+  const [excludedStrokes, setExcludedStrokes] = useState<Set<number>>(new Set());
 
   // Spin up the processing worker once.
   useEffect(() => {
@@ -116,9 +129,12 @@ export default function App() {
     });
     worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const msg = e.data;
-      if (msg.kind === "svg") { // CNC export
-        const resolve = svgPending.current.get(msg.id);
-        if (resolve) { svgPending.current.delete(msg.id); resolve(msg.svg); }
+      if (msg.kind === "trace") { // frame tool's line editor
+        if (msg.id < lastTraceId.current) return; // superseded by a newer trace
+        lastTraceId.current = msg.id;
+        setStrokeGroups(msg.groups);
+        setGroupsMmPerPx(msg.mmPerPx);
+        setExcludedStrokes(new Set());
         return;
       }
       if (msg.kind === "detect") {
@@ -244,7 +260,7 @@ export default function App() {
         setFrameResult(null);
         const worker = workerRef.current;
         if (worker && modeRef.current === "frame") {
-          const did = ++svgIdRef.current;
+          const did = ++traceIdRef.current;
           const dcopy = imageData.data.slice();
           const dreq: DetectRequest = {
             kind: "detect",
@@ -392,62 +408,81 @@ export default function App() {
     }
   }, [flashCopyMsg]);
 
-  const [svgBusy, setSvgBusy] = useState(false);
-
-  // CNC export: vectorize and scale to true mm using the detected frame's
-  // homography, clipped to the opening. Needs a detected frame.
-  const requestCncSvg = useCallback(
-    () =>
-      new Promise<string>((resolve, reject) => {
-        const worker = workerRef.current;
-        const rsrc = frameSource;   // the rectified opening (true scale)
-        const fr = frameResult;
-        const ppmm = framePpmm;
-        if (!worker || !rsrc || !fr?.detected || !fr.spec || !ppmm) {
-          reject(new Error("no frame"));
-          return;
-        }
-        const spec = fr.spec;
-        const id = ++svgIdRef.current;
-        svgPending.current.set(id, resolve);
-        const copy = rsrc.data.slice();
-        // The rectified image is already deskewed & true-scale, so px->mm is a
-        // pure scale (1/ppmm) with the opening's top-left at the origin.
-        const s = 1 / ppmm;
-        const req: CncRequest = {
-          kind: "cnc",
-          id,
-          buffer: copy.buffer,
-          width: rsrc.width,
-          height: rsrc.height,
-          params,
-          H: [[s, 0, 0], [0, s, 0], [0, 0, 1]],
-          ox: 0,
-          oy: 0,
-          openW: spec.innerW,
-          openH: spec.innerH,
-          rotateDeg: frameRotate,
-          zoom: frameZoom,
-          panXMm: framePan.x,
-          panYMm: framePan.y,
-        };
-        worker.postMessage(req, [copy.buffer]);
-      }),
-    [params, frameResult, frameSource, framePpmm, frameRotate, frameZoom, framePan],
-  );
-
-  const saveCncSvg = useCallback(async () => {
-    setSvgBusy(true);
-    try {
-      const svg = await requestCncSvg();
-      const blob = new Blob([svg], { type: "image/svg+xml" });
-      download(blob, `${baseName}-cnc-mm.svg`);
-    } catch {
-      setError("Could not create the CNC SVG — detect a frame in the photo first.");
-    } finally {
-      setSvgBusy(false);
+  // Trace stroke groups for the frame tool's line editor. View-independent
+  // (rotate/zoom/pan are applied client-side by renderStrokeGroups below, not
+  // here — see svg.ts for why that split is safe), so this only needs to re-run
+  // on the same lifecycle as the raster preview: the source crop or the tracing
+  // params changing, never a view-only tweak.
+  useEffect(() => {
+    if (mode !== "frame" || !frameSource || !framePpmm) {
+      setStrokeGroups(null);
+      return;
     }
-  }, [requestCncSvg, download, baseName]);
+    const worker = workerRef.current;
+    if (!worker) return;
+    const t = setTimeout(() => {
+      const id = ++traceIdRef.current;
+      const copy = frameSource.data.slice();
+      // The rectified image is already deskewed & true-scale, so px->mm is a pure
+      // scale (1/ppmm) with the opening's top-left at the origin.
+      const s = 1 / framePpmm;
+      const req: TraceRequest = {
+        kind: "trace",
+        id,
+        buffer: copy.buffer,
+        width: frameSource.width,
+        height: frameSource.height,
+        params,
+        H: [[s, 0, 0], [0, s, 0], [0, 0, 1]],
+        ox: 0,
+        oy: 0,
+      };
+      worker.postMessage(req, [copy.buffer]);
+    }, 180);
+    return () => clearTimeout(t);
+  }, [mode, frameSource, params, framePpmm]);
+
+  // Render the traced groups into the current view (rotate/zoom/pan). Pure,
+  // synchronous coordinate math — see renderStrokeGroups — so this can recompute
+  // on every slider tick with no worker round-trip and no risk of the line
+  // editor's strokes lagging behind the sliders that produced them.
+  const cncView = useMemo(() => {
+    const spec = frameResult?.detected ? frameResult.spec : undefined;
+    if (!strokeGroups || !spec) return null;
+    return renderStrokeGroups(
+      strokeGroups, groupsMmPerPx, spec.innerW, spec.innerH,
+      undefined, undefined, undefined,
+      frameRotate, frameZoom, framePan.x, framePan.y,
+    );
+  }, [strokeGroups, groupsMmPerPx, frameResult, frameRotate, frameZoom, framePan]);
+
+  const toggleStroke = useCallback((i: number) => {
+    if (dragMovedRef.current) return; // a pan-drag landed here, not a click
+    setExcludedStrokes((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  }, []);
+
+  // The final CNC SVG: whatever's currently traced and rendered, minus whatever
+  // the user has clicked off in the line editor. Synchronous — no worker
+  // round-trip, since cncView is already live.
+  const finalCncSvg = useCallback((): string | null => {
+    if (!cncView) return null;
+    const kept = cncView.strokes.filter((_, i) => !excludedStrokes.has(i));
+    return strokesToSvg(cncView.viewW, cncView.viewH, kept);
+  }, [cncView, excludedStrokes]);
+
+  const saveCncSvg = useCallback(() => {
+    const svg = finalCncSvg();
+    if (!svg) {
+      setError("Could not create the CNC SVG — detect a frame in the photo first.");
+      return;
+    }
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    download(blob, `${baseName}-cnc-mm.svg`);
+  }, [finalCncSvg, download, baseName]);
 
   // Copy the CNC SVG's markup as text — pasteable into a code editor, or into
   // vector tools (Illustrator, Figma, Inkscape) that accept SVG on paste. Not an
@@ -457,19 +492,18 @@ export default function App() {
       flashCopyMsg("Copy isn't supported in this browser — use Download instead.");
       return;
     }
-    setSvgBusy(true);
+    const svg = finalCncSvg();
+    if (!svg) {
+      flashCopyMsg("Couldn't copy — detect a frame in the photo first.");
+      return;
+    }
     try {
-      const svg = await requestCncSvg();
       await navigator.clipboard.writeText(svg);
       flashCopyMsg("Copied SVG code to clipboard.");
     } catch {
-      flashCopyMsg("Couldn't copy — detect a frame in the photo first.");
-    } finally {
-      setSvgBusy(false);
+      flashCopyMsg("Couldn't copy — try again.");
     }
-  }, [requestCncSvg, flashCopyMsg]);
-
-
+  }, [finalCncSvg, flashCopyMsg]);
 
   // The window is (openW/zoom) wide, so its centre can move at most half the
   // leftover either way. At 1x there is no room at all.
@@ -500,6 +534,7 @@ export default function App() {
   // applied after the rotation), so screen deltas map straight onto it and the
   // drawing follows the finger whatever the angle.
   const onStagePointerDown = (e: ReactPointerEvent) => {
+    dragMovedRef.current = false;
     if (mode !== "frame" || frameZoom === 1) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     dragFrom.current = { x: e.clientX, y: e.clientY, pan: framePan };
@@ -509,6 +544,7 @@ export default function App() {
     const spec = frameResult?.detected ? frameResult.spec : undefined;
     const box = canvasRef.current?.getBoundingClientRect();
     if (!from || !spec || !box?.width) return;
+    dragMovedRef.current = true;
     // Screen px -> mm at the current zoom; dragging right reveals what is left of
     // the window, so the offset moves the other way.
     const perPxX = spec.innerW / (frameZoom * box.width);
@@ -678,17 +714,35 @@ export default function App() {
                 <canvas
                   ref={canvasRef}
                   className="result"
-                  style={
-                    mode === "frame" && !viewIsDefault
-                      ? {
-                          transform:
-                            `translate(${(-100 * frameZoom * framePan.x) / (frameResult?.spec?.innerW ?? 1)}%, ` +
-                            `${(-100 * frameZoom * framePan.y) / (frameResult?.spec?.innerH ?? 1)}%) ` +
-                            `rotate(${frameRotate}deg) scale(${frameZoom})`,
-                        }
-                      : undefined
-                  }
+                  // Frame mode's visible preview is the line editor below, not this
+                  // canvas — but "Share image" reads pixels straight off this canvas,
+                  // so it still has to render, just invisibly.
+                  style={mode === "frame" ? { opacity: 0 } : undefined}
                 />
+                {mode === "frame" && cncView && (
+                  <svg
+                    viewBox={`0 0 ${cncView.viewW} ${cncView.viewH}`}
+                    className="line-editor"
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                  >
+                    {cncView.strokes.map((ds, i) => {
+                      if (ds.length === 0) return null;
+                      const d = ds.join(" ");
+                      const excluded = excludedStrokes.has(i);
+                      return (
+                        <g key={i} onClick={() => toggleStroke(i)} className="line-editor-stroke">
+                          {/* Wide invisible hit-area: the visible stroke is too thin
+                              (~0.3mm) to click reliably at on-screen scale. */}
+                          <path d={d} className="line-editor-hit" />
+                          <path
+                            d={d}
+                            className={excluded ? "line-editor-excluded" : "line-editor-kept"}
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                )}
               </div>
             </div>
             {busy && <div className="spinner" aria-label="Processing" />}
@@ -832,18 +886,20 @@ export default function App() {
                   <button
                     className="primary"
                     onClick={saveCncSvg}
-                    disabled={!hasResult || busy || svgBusy || !frameResult?.detected}
+                    disabled={!hasResult || busy || !cncView}
                   >
-                    {svgBusy
-                      ? "Working…"
+                    {!cncView && frameResult?.detected
+                      ? "Tracing…"
                       : `Download CNC SVG · mm${frameResult?.detected ? ` · ${frameResult.spec?.id}` : ""}`}
                   </button>
-                  <button
-                    onClick={copySvg}
-                    disabled={!hasResult || busy || svgBusy || !frameResult?.detected}
-                  >
+                  <button onClick={copySvg} disabled={!hasResult || busy || !cncView}>
                     Copy SVG code
                   </button>
+                  {cncView && excludedStrokes.size > 0 && (
+                    <button type="button" onClick={() => setExcludedStrokes(new Set())}>
+                      Restore {excludedStrokes.size} removed line{excludedStrokes.size === 1 ? "" : "s"}
+                    </button>
+                  )}
                   {(() => {
                     const spec = frameResult?.detected ? frameResult.spec : undefined;
                     return spec ? (
@@ -855,6 +911,12 @@ export default function App() {
                         </strong>
                         , single line, clipped to the view. Scaled from the detected frame
                         {frameZoom !== 1 ? ` (opening is ${spec.innerW} × ${spec.innerH} mm)` : ""}.
+                        {cncView && (
+                          <>
+                            {" "}Click a line in the preview to mark it for removal — click it
+                            again to bring it back.
+                          </>
+                        )}
                       </p>
                     ) : null;
                   })()}

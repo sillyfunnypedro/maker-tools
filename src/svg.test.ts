@@ -6,7 +6,7 @@
 // between two long ones grew control arms many times its own length, so the
 // curve looped and swung a millimetre wide of its own nodes.
 import { describe, expect, it } from "vitest";
-import { buildCncStrokedSvg } from "./svg";
+import { buildCncStrokedSvg, traceStrokeGroups, renderStrokeGroups, strokesToSvg } from "./svg";
 import { DEFAULT_PARAMS, computeMasks } from "./processing";
 import type { Mat3 } from "./qrframe/homography";
 
@@ -492,6 +492,72 @@ describe("pan (moving the crop window)", () => {
   it("leaves the export untouched at zero pan", () => {
     const plain = buildCncStrokedSvg(squareOutlineSkeleton(60), W, H, pxToMm, 0, 0, OPEN_W, OPEN_H);
     expect(build(1, [0, 0], [OPEN_W / 2, OPEN_H / 2], 60)).toBe(plain);
+  });
+});
+
+describe("stroke groups (interactive line editor)", () => {
+  // Two well-separated squares trace as two independent groups.
+  function twoSquares(): Uint8Array {
+    const a = squareOutlineSkeleton(20, 0, 40, 40);
+    const b = squareOutlineSkeleton(20, 0, 120, 120);
+    const m = blank();
+    for (let i = 0; i < m.length; i++) m[i] = a[i] || b[i];
+    return m;
+  }
+  const center = (segs: Cubic[]): Pt => {
+    const [x0, y0, x1, y1] = bbox(segs);
+    return [(x0 + x1) / 2, (y0 + y1) / 2];
+  };
+  const near = (p: Pt, q: Pt) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 3;
+
+  it("traces one group per drawn shape, independent of view", () => {
+    const { groups, mmPerPx } = traceStrokeGroups(twoSquares(), W, H, pxToMm, 0, 0);
+    expect(groups.length).toBe(2);
+    const plain = renderStrokeGroups(groups, mmPerPx, OPEN_W, OPEN_H);
+    expect(plain.strokes.length).toBe(2);
+    expect(plain.strokes.every((s) => s.length === 1)).toBe(true); // each is one closed loop
+  });
+
+  it("keeps the same group index across rotate/zoom/pan", () => {
+    const { groups, mmPerPx } = traceStrokeGroups(twoSquares(), W, H, pxToMm, 0, 0);
+    // Rotation alone can't push either square outside the (full, zoom=1) window:
+    // it preserves distance from the pivot, and even the farthest corner sits
+    // well inside every edge. The zoomed/panned cases keep enough margin for the
+    // same reason — this test is about index stability, not clipping, which has
+    // its own coverage elsewhere.
+    const views: [number, number, number, number][] = [
+      [0, 1, 0, 0], [17, 1, 0, 0], [0, 1.1, 2, -2], [25, 1.2, 3, -3],
+    ];
+    for (const [rot, zoom, panX, panY] of views) {
+      // Both shapes stay inside the (possibly cropped) view in every case here,
+      // so both groups should still produce exactly one path each, at the same
+      // indices — the property an interactive editor's exclusion set relies on.
+      const r = renderStrokeGroups(groups, mmPerPx, OPEN_W, OPEN_H, undefined, undefined, undefined, rot, zoom, panX, panY);
+      expect(r.strokes.map((s) => s.length)).toEqual([1, 1]);
+    }
+  });
+
+  it("excluding a group's index removes exactly that shape from the flattened export", () => {
+    const { groups, mmPerPx } = traceStrokeGroups(twoSquares(), W, H, pxToMm, 0, 0);
+    const { strokes, viewW, viewH } = renderStrokeGroups(groups, mmPerPx, OPEN_W, OPEN_H);
+    const full = subpaths(strokesToSvg(viewW, viewH, strokes));
+    expect(full.length).toBe(2);
+    // Whichever index corresponds to the (120,120) square, excluding it should
+    // leave only the (40,40) one behind.
+    const targetIdx = center(full[0])[0] > 80 ? 0 : 1;
+    const kept = subpaths(strokesToSvg(viewW, viewH, strokes.filter((_, i) => i !== targetIdx)));
+    expect(kept.length).toBe(1);
+    expect(near(center(kept[0]), [40, 40])).toBe(true);
+  });
+
+  it("buildCncStrokedSvg composes the same three steps", () => {
+    const skel = twoSquares();
+    const direct = buildCncStrokedSvg(
+      skel, W, H, pxToMm, 0, 0, OPEN_W, OPEN_H, 0.3, 0.1, 2, 1.5, 11, 1.3, 4, -2);
+    const { groups, mmPerPx } = traceStrokeGroups(skel, W, H, pxToMm, 0, 0);
+    const { strokes, viewW, viewH } = renderStrokeGroups(
+      groups, mmPerPx, OPEN_W, OPEN_H, 0.1, 2, 1.5, 11, 1.3, 4, -2);
+    expect(strokesToSvg(viewW, viewH, strokes, 0.3)).toBe(direct);
   });
 });
 

@@ -96,6 +96,22 @@ header h1 {
    would swing around with the drawing instead of staying put. */
 .stage.on-white { background: #ffffff; }
 
+/* Frame mode's line editor: an interactive SVG standing in for the raster canvas
+   (which still renders, invisibly, only so "Share image" keeps working). Sized
+   off the canvas's own box via absolute positioning so the two always align. */
+.line-editor-stroke { cursor: pointer; }
+.line-editor-hit { fill: none; stroke: transparent; stroke-width: 4; }
+.line-editor-kept {
+  fill: none; stroke: #000; stroke-width: 0.3;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.line-editor-excluded {
+  fill: none; stroke: #e5484d; stroke-width: 0.35; stroke-dasharray: 1.2 1;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.line-editor-stroke:hover .line-editor-kept { stroke: #3b82f6; }
+.line-editor-stroke:hover .line-editor-excluded { stroke: #ff8383; }
+
 .spinner {
   position: absolute; inset: 0; margin: auto;
   width: 44px; height: 44px;
