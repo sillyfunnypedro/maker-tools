@@ -109,8 +109,13 @@ header h1 {
   fill: none; stroke: #e5484d; stroke-width: 0.35; stroke-dasharray: 1.2 1;
   stroke-linecap: round; stroke-linejoin: round;
 }
-.line-editor-stroke:hover .line-editor-kept { stroke: #3b82f6; }
+.line-editor-selected {
+  fill: none; stroke: #3b82f6; stroke-width: 0.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.line-editor-stroke:hover .line-editor-kept { stroke: #7db4ff; }
 .line-editor-stroke:hover .line-editor-excluded { stroke: #ff8383; }
+.line-editor-stroke:hover .line-editor-selected { stroke: #2563eb; }
 
 .spinner {
   position: absolute; inset: 0; margin: auto;

@@ -121,6 +121,11 @@ export default function App() {
   const [strokeGroups, setStrokeGroups] = useState<StrokeGroup[] | null>(null);
   const [groupsMmPerPx, setGroupsMmPerPx] = useState(0);
   const [excludedStrokes, setExcludedStrokes] = useState<Set<number>>(new Set());
+  // Clicking a kept line selects it (blue) rather than removing it outright —
+  // Delete/Backspace (or the button) then moves the selection into excludedStrokes.
+  // Clicking an already-removed line still restores it immediately; selection
+  // only applies on the way to removing something.
+  const [selectedStrokes, setSelectedStrokes] = useState<Set<number>>(new Set());
 
   // Spin up the processing worker once.
   useEffect(() => {
@@ -135,6 +140,7 @@ export default function App() {
         setStrokeGroups(msg.groups);
         setGroupsMmPerPx(msg.mmPerPx);
         setExcludedStrokes(new Set());
+        setSelectedStrokes(new Set());
         return;
       }
       if (msg.kind === "detect") {
@@ -456,14 +462,49 @@ export default function App() {
     );
   }, [strokeGroups, groupsMmPerPx, frameResult, frameRotate, frameZoom, framePan]);
 
-  const toggleStroke = useCallback((i: number) => {
+  // Click a removed line to restore it immediately; click a kept line to select
+  // it (toggle blue) instead of removing it outright — actually removing a
+  // selection is a separate, deliberate step (deleteSelected).
+  const clickStroke = useCallback((i: number, excluded: boolean) => {
     if (dragMovedRef.current) return; // a pan-drag landed here, not a click
-    setExcludedStrokes((prev) => {
+    if (excluded) {
+      setExcludedStrokes((prev) => {
+        const next = new Set(prev);
+        next.delete(i);
+        return next;
+      });
+      return;
+    }
+    setSelectedStrokes((prev) => {
       const next = new Set(prev);
       if (next.has(i)) next.delete(i); else next.add(i);
       return next;
     });
   }, []);
+
+  const deleteSelected = useCallback(() => {
+    if (selectedStrokes.size === 0) return;
+    setExcludedStrokes((prev) => new Set([...prev, ...selectedStrokes]));
+    setSelectedStrokes(new Set());
+  }, [selectedStrokes]);
+
+  // Delete/Backspace removes the current selection, mirroring how a vector
+  // editor treats a selected object — but only while the line editor is the
+  // thing that makes sense to act on (a frame is loaded, nothing else has focus,
+  // e.g. the name field), so Backspace still edits text normally elsewhere.
+  useEffect(() => {
+    if (mode !== "frame") return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (selectedStrokes.size === 0) return;
+      e.preventDefault();
+      deleteSelected();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mode, selectedStrokes, deleteSelected]);
 
   // The final CNC SVG: whatever's currently traced and rendered, minus whatever
   // the user has clicked off in the line editor. Synchronous — no worker
@@ -729,14 +770,25 @@ export default function App() {
                       if (ds.length === 0) return null;
                       const d = ds.join(" ");
                       const excluded = excludedStrokes.has(i);
+                      const selected = !excluded && selectedStrokes.has(i);
                       return (
-                        <g key={i} onClick={() => toggleStroke(i)} className="line-editor-stroke">
+                        <g
+                          key={i}
+                          onClick={() => clickStroke(i, excluded)}
+                          className="line-editor-stroke"
+                        >
                           {/* Wide invisible hit-area: the visible stroke is too thin
                               (~0.3mm) to click reliably at on-screen scale. */}
                           <path d={d} className="line-editor-hit" />
                           <path
                             d={d}
-                            className={excluded ? "line-editor-excluded" : "line-editor-kept"}
+                            className={
+                              excluded
+                                ? "line-editor-excluded"
+                                : selected
+                                  ? "line-editor-selected"
+                                  : "line-editor-kept"
+                            }
                           />
                         </g>
                       );
@@ -895,6 +947,11 @@ export default function App() {
                   <button onClick={copySvg} disabled={!hasResult || busy || !cncView}>
                     Copy SVG code
                   </button>
+                  {cncView && selectedStrokes.size > 0 && (
+                    <button type="button" className="primary" onClick={deleteSelected}>
+                      Delete {selectedStrokes.size} selected line{selectedStrokes.size === 1 ? "" : "s"}
+                    </button>
+                  )}
                   {cncView && excludedStrokes.size > 0 && (
                     <button type="button" onClick={() => setExcludedStrokes(new Set())}>
                       Restore {excludedStrokes.size} removed line{excludedStrokes.size === 1 ? "" : "s"}
@@ -913,8 +970,9 @@ export default function App() {
                         {frameZoom !== 1 ? ` (opening is ${spec.innerW} × ${spec.innerH} mm)` : ""}.
                         {cncView && (
                           <>
-                            {" "}Click a line in the preview to mark it for removal — click it
-                            again to bring it back.
+                            {" "}Click a line in the preview to select it (blue), then press{" "}
+                            <strong>Delete</strong> or use the button to remove it. Click a
+                            removed (red) line to bring it back.
                           </>
                         )}
                       </p>
