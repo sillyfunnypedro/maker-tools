@@ -11,6 +11,7 @@ import {
 import {
   DEFAULT_PARAMS,
   PROCESS_DIM,
+  computeMasks,
   type Params,
 } from "./processing";
 import type {
@@ -26,6 +27,7 @@ import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
 import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
+import { DEBUG_DUMP, buildDebugZip, dumpDebugBundle, type DumpInput } from "./debugDump";
 
 /** Decode a File, fix EXIF orientation, downscale to maxDim, and return pixels. */
 async function fileToImageData(file: File, maxDim: number): Promise<ImageData> {
@@ -718,6 +720,94 @@ export default function App() {
     [params, mode],
   );
 
+  // Debug dump: collect the photo, every pipeline intermediate and the exported
+  // SVG, so a bad export can be diagnosed from the real bytes.
+  const [dumpMsg, setDumpMsg] = useState<string | null>(null);
+  const [dumpBusy, setDumpBusy] = useState(false);
+  const gatherDebugInput = useCallback(async (): Promise<DumpInput> => {
+    const photo = sourceRef.current;
+    const spec = frameResult?.detected ? frameResult.spec : undefined;
+
+    let rectifiedRaw: ImageData | null = null;
+    if (photo && frameResult?.Hmm2px && spec && framePpmm) {
+      rectifiedRaw = rectifyOpening(
+        photo, frameResult.Hmm2px, spec.marginL, spec.marginT,
+        spec.innerW, spec.innerH, framePpmm, 2,
+      );
+    }
+
+    const pipelineSrc = mode === "frame" ? frameSource : glassSource;
+    const masks = pipelineSrc
+      ? computeMasks(pipelineSrc.data, pipelineSrc.width, pipelineSrc.height, params)
+      : null;
+
+    let cncSvg: string | null = null;
+    if (mode === "frame") {
+      try { cncSvg = finalCncSvg() ?? null; } catch { /* no frame: skip */ }
+    }
+
+    return {
+      baseName,
+      photoFile: fileRef.current,
+      photo,
+      rectifiedRaw,
+      rectifiedFlat: mode === "frame" ? frameSource : glassSource,
+      masks,
+      previewCanvas: canvasRef.current,
+      cncSvg,
+      meta: {
+        dumpedAt: new Date().toISOString(),
+        build: { id: __BUILD_ID__, time: __BUILD_TIME__ },
+        fileName,
+        mode,
+        params,
+        processDim: PROCESS_DIM.standard,
+        photoSize: photo ? { w: photo.width, h: photo.height } : null,
+        pipelineSize: pipelineSrc ? { w: pipelineSrc.width, h: pipelineSrc.height } : null,
+        frame: {
+          detected: frameResult?.detected ?? false,
+          spec: frameResult?.spec ?? null,
+          ppmm: framePpmm,
+          rotateDeg: frameRotate,
+          zoom: frameZoom,
+          panMm: framePan,
+          mmPerPx: framePpmm ? 1 / framePpmm : null,
+          Hmm2px: frameResult?.Hmm2px ?? null,
+        },
+      },
+    };
+  }, [baseName, fileName, mode, params, frameResult, frameSource, glassSource, framePpmm, frameRotate, frameZoom, framePan, finalCncSvg]);
+
+  const runDump = useCallback(
+    async (label: string, action: (input: DumpInput) => Promise<string>) => {
+      setDumpBusy(true);
+      setDumpMsg(label);
+      try {
+        setDumpMsg(await action(await gatherDebugInput()));
+      } catch (e) {
+        setDumpMsg(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        setDumpBusy(false);
+      }
+    },
+    [gatherDebugInput],
+  );
+
+  const dumpDebugToServer = useCallback(
+    () => runDump("Uploading…", async (input) => `Wrote debug-dumps/${await dumpDebugBundle(input)}/`),
+    [runDump],
+  );
+
+  const shareDebugZip = useCallback(
+    () => runDump("Zipping…", async (input) => {
+      const { filename, blob } = await buildDebugZip(input);
+      const kb = Math.round(blob.size / 1024);
+      await share(blob, filename);
+      return `${filename} · ${kb} kB — sent to the share sheet`;
+    }),
+    [runDump, share],
+  );
+
   return (
     <div className="app">
       {showCookieSplash && <CookieSplash onDismiss={() => setShowCookieSplash(false)} />}
@@ -1103,6 +1193,24 @@ export default function App() {
                 New photo
                 <input type="file" accept="image/*" onChange={onFileInput} hidden />
               </label>
+
+              {DEBUG_DUMP && (
+                <>
+                  <button
+                    onClick={shareDebugZip}
+                    disabled={busy || dumpBusy || !hasResult}
+                  >
+                    {dumpBusy ? "Working…" : "Email / share debug .zip"}
+                  </button>
+                  <button
+                    onClick={dumpDebugToServer}
+                    disabled={busy || dumpBusy || !hasResult}
+                  >
+                    Dump debug bundle to server
+                  </button>
+                  {dumpMsg && <p className="hint">{dumpMsg}</p>}
+                </>
+              )}
 
 
             </div>
