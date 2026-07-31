@@ -95,6 +95,13 @@ export default function App() {
   // makes paper uniformly white so the threshold means something.
   const [glassSource, setGlassSource] = useState<ImageData | null>(null);
   const [framePpmm, setFramePpmm] = useState(0);
+  // A wider, untrimmed capture around the opening — margin, registration dots,
+  // QR corner, the cut edge itself — purely for zooming *out* to see what's
+  // producing an edge artifact. Never traced or exported; the CNC SVG only ever
+  // comes from frameSource, unaffected by this.
+  const [frameMarginSource, setFrameMarginSource] = useState<ImageData | null>(null);
+  const [frameMarginMm, setFrameMarginMm] = useState(0);
+  const marginCanvasRef = useRef<HTMLCanvasElement | null>(null);
   // Frame-only view controls: straighten a crooked sheet, and crop in to cut off
   // noise near the opening's edge. Purely coordinate changes — the preview turns
   // and scales with a CSS transform and the export transforms its millimetre
@@ -195,6 +202,7 @@ export default function App() {
     if (!frameResult?.detected || !frameResult.Hmm2px || !frameResult.spec || !sourceRef.current) {
       setFrameSource(null);
       setFramePpmm(0);
+      setFrameMarginSource(null);
       // Frame mode never previews the raw photo, so a failed detection produces no
       // render to clear the spinner. Clear it here or the "no frame found" prompt
       // (which waits for !busy) would never appear.
@@ -226,7 +234,33 @@ export default function App() {
       const thr = Math.max(150, Math.min(250, Math.round(otsuThreshold(flat))));
       setParams((p) => ({ ...p, bgThresh: thr }));
     }
+
+    // A wider, untrimmed capture around the opening, for "zoom out" to see what's
+    // producing an edge artifact — the QR corner, the registration dots, the cut
+    // edge itself. Capped so it never samples past the frame's own narrowest
+    // margin (a 1mm safety pad short of it) — going further would start
+    // sampling whatever's beyond the printed sheet.
+    const margin = Math.max(0, Math.min(8, spec.marginL, spec.marginT, spec.marginR, spec.marginB) - 1);
+    setFrameMarginMm(margin);
+    if (margin > 0) {
+      const marginCrop = rectifyOpening(
+        sourceRef.current, frameResult.Hmm2px, spec.marginL - margin, spec.marginT - margin,
+        spec.innerW + 2 * margin, spec.innerH + 2 * margin, ppmm, 0, // no inset: show it as-is
+      );
+      setFrameMarginSource(flattenIllumination(marginCrop, Math.round(6 * ppmm)));
+    } else {
+      setFrameMarginSource(null);
+    }
   }, [frameResult]);
+
+  // Draw the margin capture once it's ready — plain pixels, no worker needed.
+  useEffect(() => {
+    const canvas = marginCanvasRef.current;
+    if (!canvas || !frameMarginSource) return;
+    canvas.width = frameMarginSource.width;
+    canvas.height = frameMarginSource.height;
+    canvas.getContext("2d")!.putImageData(frameMarginSource, 0, 0);
+  }, [frameMarginSource]);
 
   // Debounced reprocess whenever params, mode, or the rectified crop change.
   // Frame mode processes the cut-out opening; glass mode the full photo.
@@ -547,10 +581,13 @@ export default function App() {
   }, [finalCncSvg, flashCopyMsg]);
 
   // The window is (openW/zoom) wide, so its centre can move at most half the
-  // leftover either way. At 1x there is no room at all.
+  // leftover either way. At 1x there is no room at all, and below 1x — zoomed
+  // out past the opening, to see the margin around it — there's nothing to
+  // pan *to*: the whole opening is already on screen, so clamp at zero rather
+  // than let the formula go negative and invert the clamp range.
   const panLimit = useCallback((zoom: number) => {
     const spec = frameResult?.detected ? frameResult.spec : undefined;
-    if (!spec) return { x: 0, y: 0 };
+    if (!spec || zoom <= 1) return { x: 0, y: 0 };
     return {
       x: (spec.innerW * (1 - 1 / zoom)) / 2,
       y: (spec.innerH * (1 - 1 / zoom)) / 2,
@@ -760,12 +797,53 @@ export default function App() {
                   // so it still has to render, just invisibly.
                   style={mode === "frame" ? { opacity: 0 } : undefined}
                 />
+                {mode === "frame" && frameMarginSource && frameResult?.detected && frameResult.spec && (() => {
+                  const spec = frameResult.spec;
+                  const MW = spec.innerW + 2 * frameMarginMm;
+                  const MH = spec.innerH + 2 * frameMarginMm;
+                  // Below 1x this scale shrinks both the backdrop and the line
+                  // editor together, opening up room around them to reveal the
+                  // margin — at 1x and above it's exactly 1 (a no-op), so nothing
+                  // about the existing crop-in behavior changes. Pan/rotate follow
+                  // the same math the old raster preview used, so the backdrop
+                  // stays aligned with the traced strokes on top of it.
+                  const zoomOut = Math.min(1, frameZoom);
+                  const zoomIn = Math.max(1, frameZoom);
+                  return (
+                    <canvas
+                      ref={marginCanvasRef}
+                      className="frame-margin-backdrop"
+                      style={{
+                        position: "absolute", top: "50%", left: "50%",
+                        width: `${(100 * MW) / spec.innerW}%`,
+                        height: `${(100 * MH) / spec.innerH}%`,
+                        transform:
+                          `translate(-50%, -50%) scale(${zoomOut}) ` +
+                          `translate(${(-100 * zoomIn * framePan.x) / MW}%, ` +
+                          `${(-100 * zoomIn * framePan.y) / MH}%) ` +
+                          `rotate(${frameRotate}deg) scale(${zoomIn})`,
+                      }}
+                    />
+                  );
+                })()}
                 {mode === "frame" && cncView && (
                   <svg
                     viewBox={`0 0 ${cncView.viewW} ${cncView.viewH}`}
                     className="line-editor"
-                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                    style={{
+                      position: "absolute", inset: 0, width: "100%", height: "100%",
+                      // Shrinks the (already rotate/pan/clip-correct) strokes to
+                      // match the backdrop's margin reveal below 1x; a no-op — and
+                      // untouched behavior — at 1x and above.
+                      transform: `scale(${Math.min(1, frameZoom)})`,
+                    }}
                   >
+                    {frameZoom < 1 && (
+                      <rect
+                        x={0} y={0} width={cncView.viewW} height={cncView.viewH}
+                        className="line-editor-boundary"
+                      />
+                    )}
                     {cncView.strokes.map((ds, i) => {
                       if (ds.length === 0) return null;
                       const d = ds.join(" ");
@@ -798,6 +876,19 @@ export default function App() {
               </div>
             </div>
             {busy && <div className="spinner" aria-label="Processing" />}
+            {mode === "frame" && selectedStrokes.size > 0 && (
+              <div className="line-editor-popup">
+                <span>
+                  {selectedStrokes.size} line{selectedStrokes.size === 1 ? "" : "s"} selected
+                </span>
+                <button type="button" className="primary" onClick={deleteSelected}>
+                  Delete
+                </button>
+                <button type="button" onClick={() => setSelectedStrokes(new Set())}>
+                  Deselect
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="controls">
@@ -881,28 +972,34 @@ export default function App() {
                   <label>
                     Zoom
                     {/* Show the area the export will cover, so it's clear this
-                        crops the view rather than scaling the drawing. */}
+                        crops the view rather than scaling the drawing. Below 1x
+                        the export itself never grows past the full opening —
+                        that's only ever a peek at the margin around it. */}
                     <span className="val">
                       {frameZoom.toFixed(2)}×
                       {frameResult?.spec
-                        ? ` · ${(frameResult.spec.innerW / frameZoom).toFixed(0)} × ` +
-                          `${(frameResult.spec.innerH / frameZoom).toFixed(0)} mm`
+                        ? ` · ${(frameResult.spec.innerW / Math.max(1, frameZoom)).toFixed(0)} × ` +
+                          `${(frameResult.spec.innerH / Math.max(1, frameZoom)).toFixed(0)} mm`
                         : ""}
                     </span>
                   </label>
                   <input
                     type="range"
-                    min={1}
+                    min={0.6}
                     max={3}
                     step={0.05}
                     value={frameZoom}
                     onChange={(e) => changeZoom(Number(e.target.value))}
                   />
                   <small className="help">
-                    Crops in — the quickest way to drop specks and shadow marks near
-                    the edge. Only what you can see gets exported, still at true
-                    size; the file just covers a smaller area. Once you're zoomed
-                    in, <strong>drag the drawing</strong> to choose which part.
+                    Above 1×, crops in — the quickest way to drop specks and shadow
+                    marks near the edge. Only what you can see gets exported, still
+                    at true size; the file just covers a smaller area. Once you're
+                    zoomed in, <strong>drag the drawing</strong> to choose which
+                    part. Below 1×, it's the reverse: a peek past the opening's
+                    edge at the frame's margin — the QR code, registration dots,
+                    the cut edge itself — to see what's producing a mark near the
+                    edge. That view never grows the export; it's for looking only.
                   </small>
                 </div>
                 {!viewIsDefault && (

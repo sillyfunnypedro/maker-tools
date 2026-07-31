@@ -116,6 +116,31 @@ header h1 {
 .line-editor-stroke:hover .line-editor-kept { stroke: #7db4ff; }
 .line-editor-stroke:hover .line-editor-excluded { stroke: #ff8383; }
 .line-editor-stroke:hover .line-editor-selected { stroke: #2563eb; }
+/* Marks the true opening's edge once zoomed out past it, so it's clear where
+   the export stops and the margin (QR code, dots, cut edge) merely being
+   shown for reference begins. */
+.line-editor-boundary {
+  fill: none; stroke: #3b82f6; stroke-width: 0.4; stroke-dasharray: 2 1.4;
+  pointer-events: none;
+}
+/* The wider, untrimmed capture shown only when zoomed below 1x — see the Zoom
+   slider's help text. Pre-sized larger than its box (via width/height %) to
+   account for the extra margin it carries beyond the opening; the shared
+   scale/rotate/translate transform (computed alongside the line editor's own)
+   is what keeps the two aligned. */
+.frame-margin-backdrop { position: absolute; }
+
+/* Floating popup over the preview when a line is selected, so Delete/Deselect
+   are right where you're looking instead of a scroll away in the sidebar. */
+.line-editor-popup {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; padding: 8px 10px 8px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  color: var(--text); font-size: 13px; white-space: nowrap;
+}
+.line-editor-popup button { padding: 6px 12px; border-radius: 999px; }
 
 .spinner {
   position: absolute; inset: 0; margin: auto;
