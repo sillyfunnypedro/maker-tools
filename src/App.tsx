@@ -228,8 +228,13 @@ export default function App() {
       spec.innerW, spec.innerH, ppmm, 3,
     );
     // Flatten illumination (grayscale + background normalize) so shadows/uneven
-    // light don't survive as false lines, then process that.
-    const flat = flattenIllumination(crop, Math.round(6 * ppmm)); // ~6mm background
+    // light don't survive as false lines, then process that. In areas mode,
+    // flattening is skipped: the local-mean window samples the filled regions
+    // themselves, which lightens their centers and creates false internal
+    // structure in what should be a uniform black shape.
+    const flat = detectMode === "areas"
+      ? crop
+      : flattenIllumination(crop, Math.round(6 * ppmm)); // ~6mm background
     setFrameSource(flat);
     // Auto-pick sensitivity from the flattened crop (Otsu ink/paper split), but
     // only for a newly detected frame: re-running it while the user drags the
@@ -256,7 +261,7 @@ export default function App() {
     } else {
       setFrameMarginSource(null);
     }
-  }, [frameResult]);
+  }, [frameResult, detectMode]);
 
   // Draw the margin capture once it's ready — plain pixels, no worker needed.
   useEffect(() => {
