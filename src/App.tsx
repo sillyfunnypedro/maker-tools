@@ -107,6 +107,9 @@ export default function App() {
   // Detection mode for the frame tool: "lines" traces centerlines of drawn
   // strokes; "areas" traces the outline/silhouette of filled black regions.
   const [detectMode, setDetectMode] = useState<"lines" | "areas">("lines");
+  // Contour smoothing for areas mode (mm). Higher = rounder/cleaner outlines,
+  // lower = preserves every hand-drawn wobble. Also used as simplifyMm for lines.
+  const [areaSmoothing, setAreaSmoothing] = useState(0.5);
   // Frame-only view controls: straighten a crooked sheet, and crop in to cut off
   // noise near the opening's edge. Purely coordinate changes — the preview turns
   // and scales with a CSS transform and the export transforms its millimetre
@@ -501,12 +504,13 @@ export default function App() {
   const cncView = useMemo(() => {
     const spec = frameResult?.detected ? frameResult.spec : undefined;
     if (!strokeGroups || !spec) return null;
+    const simplify = detectMode === "areas" ? areaSmoothing : undefined;
     return renderStrokeGroups(
       strokeGroups, groupsMmPerPx, spec.innerW, spec.innerH,
-      undefined, undefined, undefined,
+      simplify, undefined, undefined,
       frameRotate, frameZoom, framePan.x, framePan.y,
     );
-  }, [strokeGroups, groupsMmPerPx, frameResult, frameRotate, frameZoom, framePan]);
+  }, [strokeGroups, groupsMmPerPx, frameResult, frameRotate, frameZoom, framePan, detectMode, areaSmoothing]);
 
   // Click a removed line to restore it immediately; click a kept line to select
   // it (toggle blue) instead of removing it outright — actually removing a
@@ -1145,6 +1149,27 @@ export default function App() {
                 <small className="help">{s.help}</small>
               </div>
             ))}
+
+            {mode === "frame" && detectMode === "areas" && (
+              <div className="control">
+                <label>
+                  Smoothing
+                  <span className="val">{areaSmoothing.toFixed(1)} mm</span>
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={3}
+                  step={0.1}
+                  value={areaSmoothing}
+                  onChange={(e) => setAreaSmoothing(Number(e.target.value))}
+                />
+                <small className="help">
+                  Rounds off hand-drawn wobble. Higher = cleaner/rounder outlines,
+                  lower = preserves every bump and irregularity in the drawing.
+                </small>
+              </div>
+            )}
 
 
             <div className="buttons">
