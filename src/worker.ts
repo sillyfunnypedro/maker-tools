@@ -4,6 +4,27 @@ import { traceStrokeGroups, traceAreaGroups, type StrokeGroup } from "./svg";
 import { traceContours, thresholdMask } from "./contour";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
+/** Render contour outlines as black on transparent (areas mode raster preview). */
+function processAreas(
+  data: Uint8ClampedArray, w: number, h: number, params: Params,
+): Uint8ClampedArray {
+  const mask = thresholdMask(data, w, h, params.bgThresh);
+  const contours = traceContours(mask, w, h, params.minBlob);
+
+  // Draw contours as black lines on transparent background.
+  const out = new Uint8ClampedArray(w * h * 4); // all zeros = transparent
+  for (const contour of contours) {
+    for (const [x, y] of contour) {
+      if (x >= 0 && x < w && y >= 0 && y < h) {
+        const off = (y * w + x) * 4;
+        out[off] = out[off + 1] = out[off + 2] = 0; // black
+        out[off + 3] = 255; // opaque
+      }
+    }
+  }
+  return out;
+}
+
 interface BaseRequest {
   id: number;
   buffer: ArrayBuffer; // RGBA pixel data
@@ -13,6 +34,8 @@ interface BaseRequest {
 }
 export interface PngRequest extends BaseRequest {
   kind: "png";
+  /** When set to "areas", render contour outlines instead of skeleton lines. */
+  detectMode?: "lines" | "areas";
 }
 export interface DetectRequest extends BaseRequest {
   kind: "detect";
@@ -87,7 +110,9 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     return;
   }
 
-  const result = process(data, req.width, req.height, req.params);
+  const result = req.detectMode === "areas"
+    ? processAreas(data, req.width, req.height, req.params)
+    : process(data, req.width, req.height, req.params);
   const out = result.buffer as ArrayBuffer;
   const res: PngResponse = {
     kind: "png",

@@ -197,9 +197,10 @@ export default function App() {
       width: src.width,
       height: src.height,
       params: p,
+      detectMode: mode === "frame" ? detectMode : undefined,
     };
     worker.postMessage(req, [copy.buffer]);
-  }, []);
+  }, [mode, detectMode]);
 
   // Frame pipeline step 2: when a frame is detected, cut out + rectify the
   // opening to a true-scale image and make it the frame-workflow source.
