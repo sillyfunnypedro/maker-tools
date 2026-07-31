@@ -104,6 +104,9 @@ export default function App() {
   const [frameMarginSource, setFrameMarginSource] = useState<ImageData | null>(null);
   const [frameMarginMm, setFrameMarginMm] = useState(0);
   const marginCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Detection mode for the frame tool: "lines" traces centerlines of drawn
+  // strokes; "areas" traces the outline/silhouette of filled black regions.
+  const [detectMode, setDetectMode] = useState<"lines" | "areas">("lines");
   // Frame-only view controls: straighten a crooked sheet, and crop in to cut off
   // noise near the opening's edge. Purely coordinate changes — the preview turns
   // and scales with a CSS transform and the export transforms its millimetre
@@ -1031,6 +1034,23 @@ export default function App() {
                   onClick={() => setParams((p) => ({ ...p, mode: "lines" }))}
                 >
                   Line drawing
+                </button>
+              </div>
+            )}
+
+            {mode === "frame" && (
+              <div className="modes" role="group" aria-label="Detection mode">
+                <button
+                  className={detectMode === "lines" ? "active" : ""}
+                  onClick={() => setDetectMode("lines")}
+                >
+                  Lines
+                </button>
+                <button
+                  className={detectMode === "areas" ? "active" : ""}
+                  onClick={() => setDetectMode("areas")}
+                >
+                  Areas
                 </button>
               </div>
             )}
