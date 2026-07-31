@@ -897,7 +897,7 @@ export default function App() {
                   // so it still has to render, just invisibly.
                   style={mode === "frame" ? { opacity: 0 } : undefined}
                 />
-                {mode === "frame" && frameMarginSource && frameResult?.detected && frameResult.spec && (() => {
+                {mode === "frame" && frameMarginSource && frameResult?.detected && frameResult.spec && detectMode !== "areas" && (() => {
                   const spec = frameResult.spec;
                   const MW = spec.innerW + 2 * frameMarginMm;
                   const MH = spec.innerH + 2 * frameMarginMm;
