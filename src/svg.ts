@@ -833,3 +833,30 @@ function traceSkeleton(skel: Uint8Array, w: number, h: number): Pt[][] {
 
   return polylines;
 }
+
+// --------------------------------------------------------------------------- //
+// Area mode: contour outlines of filled black regions.
+// --------------------------------------------------------------------------- //
+
+/**
+ * Contour polylines (pixel coords) -> mm-space stroke groups, all closed.
+ *
+ * The contours come from `traceContours` in contour.ts — one closed polyline per
+ * foreground region boundary. This converts them to millimetre coordinates using
+ * the same homography the centerline path uses, so `renderStrokeGroups` can
+ * handle them identically from here on (simplify, smooth, clip, rotate/zoom/pan).
+ */
+export function traceAreaGroups(
+  contours: Pt[][], _w: number, _h: number, H: Mat3, ox: number, oy: number,
+): { groups: StrokeGroup[]; mmPerPx: number } {
+  const px = mmPerPx(H);
+  const groups: StrokeGroup[] = [];
+
+  for (const contour of contours) {
+    if (contour.length < 3) continue;
+    const mm = contour.map((p) => pxToMm(H, p, ox, oy));
+    groups.push({ pts: mm, closed: true });
+  }
+
+  return { groups, mmPerPx: px };
+}

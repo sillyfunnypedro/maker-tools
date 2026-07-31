@@ -481,11 +481,12 @@ export default function App() {
         H: [[s, 0, 0], [0, s, 0], [0, 0, 1]],
         ox: 0,
         oy: 0,
+        detectMode,
       };
       worker.postMessage(req, [copy.buffer]);
     }, 180);
     return () => clearTimeout(t);
-  }, [mode, frameSource, params, framePpmm]);
+  }, [mode, frameSource, params, framePpmm, detectMode]);
 
   // Render the traced groups into the current view (rotate/zoom/pan). Pure,
   // synchronous coordinate math — see renderStrokeGroups — so this can recompute

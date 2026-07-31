@@ -1,6 +1,7 @@
 // Runs the image pipeline off the main thread so the UI stays responsive.
 import { process, computeMasks, type Params } from "./processing";
-import { traceStrokeGroups, type StrokeGroup } from "./svg";
+import { traceStrokeGroups, traceAreaGroups, type StrokeGroup } from "./svg";
+import { traceContours, thresholdMask } from "./contour";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
 interface BaseRequest {
@@ -22,6 +23,8 @@ export interface TraceRequest extends BaseRequest {
   H: number[][];
   ox: number;
   oy: number;
+  /** "lines" = centerline tracing; "areas" = contour outlines of filled regions. */
+  detectMode: "lines" | "areas";
 }
 export type WorkerRequest =
   | PngRequest
@@ -65,13 +68,21 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
   }
 
   if (req.kind === "trace") {
-    const m = computeMasks(data, req.width, req.height, req.params);
-    // Traced view-independent (rotate/zoom/pan applied later, client-side — see
-    // renderStrokeGroups): only the source pixels and the tracing params can
-    // change these groups, so this only needs to re-run on the same lifecycle as
-    // the raster preview, not on every view tweak.
-    const { groups, mmPerPx } = traceStrokeGroups(m.skeleton, m.w, m.h, req.H, req.ox, req.oy);
-    const res: TraceResponse = { kind: "trace", id: req.id, groups, mmPerPx };
+    let groups: StrokeGroup[];
+    let px: number;
+
+    if (req.detectMode === "areas") {
+      // Area mode: threshold -> contour trace -> mm conversion.
+      const mask = thresholdMask(data, req.width, req.height, req.params.bgThresh);
+      const contours = traceContours(mask, req.width, req.height, req.params.minBlob);
+      ({ groups, mmPerPx: px } = traceAreaGroups(contours, req.width, req.height, req.H, req.ox, req.oy));
+    } else {
+      // Lines mode: skeleton -> centerline trace.
+      const m = computeMasks(data, req.width, req.height, req.params);
+      ({ groups, mmPerPx: px } = traceStrokeGroups(m.skeleton, m.w, m.h, req.H, req.ox, req.oy));
+    }
+
+    const res: TraceResponse = { kind: "trace", id: req.id, groups, mmPerPx: px };
     (self as unknown as Worker).postMessage(res);
     return;
   }
