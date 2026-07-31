@@ -229,13 +229,13 @@ export default function App() {
       spec.innerW, spec.innerH, ppmm, 3,
     );
     // Flatten illumination (grayscale + background normalize) so shadows/uneven
-    // light don't survive as false lines, then process that. In areas mode,
-    // flattening is skipped: the local-mean window samples the filled regions
-    // themselves, which lightens their centers and creates false internal
-    // structure in what should be a uniform black shape.
-    const flat = detectMode === "areas"
-      ? crop
-      : flattenIllumination(crop, Math.round(6 * ppmm)); // ~6mm background
+    // light don't survive as false lines, then process that. In areas mode, use a
+    // much larger radius (~30mm) so the window is bigger than any single shape —
+    // it estimates paper brightness correctly without lightening the fills' centers.
+    const flatRadius = detectMode === "areas"
+      ? Math.round(30 * ppmm)   // ~30mm: larger than any shape
+      : Math.round(6 * ppmm);   // ~6mm: just wider than drawn lines
+    const flat = flattenIllumination(crop, flatRadius);
     setFrameSource(flat);
     // Auto-pick sensitivity from the flattened crop (Otsu ink/paper split), but
     // only for a newly detected frame: re-running it while the user drags the

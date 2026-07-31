@@ -157,3 +157,90 @@ export function thresholdMask(
   }
   return mask;
 }
+
+/**
+ * Remove (zero out) any foreground regions in the mask that touch the image
+ * border. These are invariably frame shadows, table edges, or other artifacts
+ * — real drawing content sits inside the opening, not touching its edge.
+ *
+ * Uses a flood fill from every border pixel that's foreground.
+ */
+export function removeBorderRegions(mask: Uint8Array, w: number, h: number): void {
+  const stack: number[] = [];
+
+  // Seed from all four borders.
+  for (let x = 0; x < w; x++) {
+    if (mask[x]) stack.push(x);                       // top row
+    const bot = (h - 1) * w + x;
+    if (mask[bot]) stack.push(bot);                   // bottom row
+  }
+  for (let y = 1; y < h - 1; y++) {
+    if (mask[y * w]) stack.push(y * w);               // left column
+    const right = y * w + w - 1;
+    if (mask[right]) stack.push(right);               // right column
+  }
+
+  // Flood fill (4-connected) — clear every connected foreground pixel.
+  while (stack.length) {
+    const idx = stack.pop()!;
+    if (!mask[idx]) continue;
+    mask[idx] = 0;
+    const x = idx % w;
+    const y = (idx - x) / w;
+    if (x > 0 && mask[idx - 1]) stack.push(idx - 1);
+    if (x < w - 1 && mask[idx + 1]) stack.push(idx + 1);
+    if (y > 0 && mask[idx - w]) stack.push(idx - w);
+    if (y < h - 1 && mask[idx + w]) stack.push(idx + w);
+  }
+}
+
+/**
+ * Histogram equalization on grayscale values extracted from RGBA.
+ * Returns a new RGBA image where the luminance channel has been equalized,
+ * stretching the contrast so shadows become lighter and ink stays dark.
+ * This makes thresholding far more robust against uneven lighting.
+ */
+export function equalizeHistogram(
+  rgba: Uint8ClampedArray, w: number, h: number,
+): Uint8ClampedArray {
+  const n = w * h;
+
+  // Build grayscale histogram
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < n; i++) {
+    const off = i * 4;
+    const gray = (rgba[off] * 77 + rgba[off + 1] * 150 + rgba[off + 2] * 29) >> 8;
+    hist[gray]++;
+  }
+
+  // Build CDF (cumulative distribution function)
+  const cdf = new Uint32Array(256);
+  cdf[0] = hist[0];
+  for (let i = 1; i < 256; i++) cdf[i] = cdf[i - 1] + hist[i];
+
+  // Find the minimum non-zero CDF value
+  let cdfMin = 0;
+  for (let i = 0; i < 256; i++) {
+    if (cdf[i] > 0) { cdfMin = cdf[i]; break; }
+  }
+
+  // Build lookup table: equalized value for each input gray level
+  const lut = new Uint8Array(256);
+  const denom = n - cdfMin;
+  if (denom > 0) {
+    for (let i = 0; i < 256; i++) {
+      lut[i] = Math.round(((cdf[i] - cdfMin) / denom) * 255);
+    }
+  }
+
+  // Apply: convert to gray, equalize, write back as grayscale RGBA
+  const out = new Uint8ClampedArray(n * 4);
+  for (let i = 0; i < n; i++) {
+    const off = i * 4;
+    const gray = (rgba[off] * 77 + rgba[off + 1] * 150 + rgba[off + 2] * 29) >> 8;
+    const eq = lut[gray];
+    out[off] = out[off + 1] = out[off + 2] = eq;
+    out[off + 3] = 255;
+  }
+  return out;
+}

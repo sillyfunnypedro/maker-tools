@@ -1,7 +1,7 @@
 // Runs the image pipeline off the main thread so the UI stays responsive.
 import { process, computeMasks, type Params } from "./processing";
 import { traceStrokeGroups, traceAreaGroups, type StrokeGroup } from "./svg";
-import { traceContours, thresholdMask } from "./contour";
+import { traceContours, thresholdMask, removeBorderRegions } from "./contour";
 import { detectQrFrame, type QrFrameResult } from "./qrframe/detect";
 
 /** Render contour outlines as black on transparent (areas mode raster preview). */
@@ -9,6 +9,7 @@ function processAreas(
   data: Uint8ClampedArray, w: number, h: number, params: Params,
 ): Uint8ClampedArray {
   const mask = thresholdMask(data, w, h, params.bgThresh);
+  removeBorderRegions(mask, w, h);
   const contours = traceContours(mask, w, h, params.minBlob);
 
   // Draw contours as black lines on transparent background.
@@ -95,8 +96,9 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
     let px: number;
 
     if (req.detectMode === "areas") {
-      // Area mode: threshold -> contour trace -> mm conversion.
+      // Area mode: threshold -> remove border noise -> contour trace -> mm conversion.
       const mask = thresholdMask(data, req.width, req.height, req.params.bgThresh);
+      removeBorderRegions(mask, req.width, req.height);
       const contours = traceContours(mask, req.width, req.height, req.params.minBlob);
       ({ groups, mmPerPx: px } = traceAreaGroups(contours, req.width, req.height, req.H, req.ox, req.oy));
     } else {
