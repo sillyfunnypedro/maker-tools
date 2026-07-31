@@ -553,7 +553,21 @@ export function renderStrokeGroups(
 /** Flatten a (typically already-filtered) per-group stroke list into one SVG doc. */
 export function strokesToSvg(
   viewW: number, viewH: number, strokes: string[][], strokeMm = 0.3,
+  opts: { separatePaths?: boolean; filled?: boolean } = {},
 ): string {
+  const { separatePaths = false, filled = false } = opts;
+  if (separatePaths) {
+    // One <path> per group — each shape is independently selectable in a vector editor.
+    const fill = filled ? "#000000" : "none";
+    const stroke = filled ? "none" : "#000000";
+    const paths = strokes
+      .filter((ds) => ds.length > 0)
+      .map((ds) =>
+        `  <path fill="${fill}" stroke="${stroke}" stroke-width="${strokeMm}" ` +
+        `stroke-linecap="round" stroke-linejoin="round" d="${ds.join(" ")}"/>`)
+      .join("\n");
+    return svgDocMm(viewW, viewH, paths);
+  }
   return svgDocMm(viewW, viewH,
     `  <path fill="none" stroke="#000000" stroke-width="${strokeMm}" ` +
     `stroke-linecap="round" stroke-linejoin="round" d="${strokes.flat().join(" ")}"/>`);

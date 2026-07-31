@@ -562,8 +562,9 @@ export default function App() {
   const finalCncSvg = useCallback((): string | null => {
     if (!cncView) return null;
     const kept = cncView.strokes.filter((_, i) => !excludedStrokes.has(i));
-    return strokesToSvg(cncView.viewW, cncView.viewH, kept);
-  }, [cncView, excludedStrokes]);
+    return strokesToSvg(cncView.viewW, cncView.viewH, kept, undefined,
+      detectMode === "areas" ? { separatePaths: true, filled: true } : undefined);
+  }, [cncView, excludedStrokes, detectMode]);
 
   const saveCncSvg = useCallback(() => {
     const svg = finalCncSvg();
