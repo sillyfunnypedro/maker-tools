@@ -611,3 +611,16 @@ button.primary {
   color: var(--muted);
   font-weight: 600;
 }
+
+/* Manual width input in the no-frame modal */
+.manual-width {
+  display: flex; flex-direction: column; gap: 10px;
+  align-items: center; margin: 16px 0;
+}
+.manual-width label { font-size: 0.9rem; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.manual-width-input {
+  width: 80px; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 1rem; text-align: center;
+}
+.manual-width-input:focus { outline: none; border-color: var(--accent); }

@@ -110,6 +110,9 @@ export default function App() {
   // Contour smoothing for areas mode (mm). Higher = rounder/cleaner outlines,
   // lower = preserves every hand-drawn wobble. Also used as simplifyMm for lines.
   const [areaSmoothing, setAreaSmoothing] = useState(0.5);
+  // Manual width fallback: when no frame is detected, the user can supply the
+  // image's physical width in mm and we proceed without rectification.
+  const [manualWidthMm, setManualWidthMm] = useState<string>("");
   // Frame-only view controls: straighten a crooked sheet, and crop in to cut off
   // noise near the opening's edge. Purely coordinate changes — the preview turns
   // and scales with a CSS transform and the export transforms its millimetre
@@ -266,6 +269,42 @@ export default function App() {
       setFrameMarginSource(null);
     }
   }, [frameResult, detectMode]);
+
+  // Manual-width fallback: user enters the physical width and we set up the
+  // pipeline without rectification — the whole decoded photo becomes the source.
+  const applyManualWidth = useCallback(() => {
+    const widthMm = Number(manualWidthMm);
+    if (!widthMm || widthMm <= 0 || !sourceRef.current) return;
+    const photo = sourceRef.current;
+    const ppmm = photo.width / widthMm;
+    const heightMm = photo.height / ppmm;
+    setFramePpmm(ppmm);
+
+    // Use the photo directly — no rectification.
+    const flatRadius = detectMode === "areas"
+      ? Math.round(30 * ppmm)
+      : Math.round(6 * ppmm);
+    const flat = flattenIllumination(photo, flatRadius);
+    setFrameSource(flat);
+
+    // Synthesize a fake frameResult so the rest of the pipeline works.
+    // The "spec" carries the image dimensions as the opening size.
+    setFrameResult({
+      detected: true,
+      spec: {
+        id: "manual", innerW: widthMm, innerH: heightMm, scaleMm: 0,
+        marginL: 0, marginT: 0, marginR: 0, marginB: 0,
+        qrX: 0, qrY: 0, qrSize: 0, dotSpacing: 0, dotD: 0,
+      },
+      Hmm2px: [[ppmm, 0, 0], [0, ppmm, 0], [0, 0, 1]],
+      inliers: 0,
+      nDots: 0,
+      reprojErrPx: 0,
+    } as any);
+
+    const thr = Math.max(150, Math.min(250, Math.round(otsuThreshold(flat))));
+    setParams((p) => ({ ...p, bgThresh: thr }));
+  }, [manualWidthMm, detectMode]);
 
   // Draw the margin capture once it's ready — plain pixels, no worker needed.
   useEffect(() => {
@@ -1328,9 +1367,33 @@ export default function App() {
           <div className="modal">
             <h2 id="noframe-title">No frame detected</h2>
             <p>
-              We couldn't find a registration frame in that photo. Take another
-              picture with:
+              We couldn't find a registration frame in that photo. You can either
+              try a new photo, or tell us the width and we'll scale from that.
             </p>
+
+            <div className="manual-width">
+              <label>
+                Image width in mm:
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={manualWidthMm}
+                  onChange={(e) => setManualWidthMm(e.target.value)}
+                  placeholder="e.g. 150"
+                  className="manual-width-input"
+                />
+              </label>
+              <button
+                className="modal-btn"
+                onClick={applyManualWidth}
+                disabled={!manualWidthMm || Number(manualWidthMm) <= 0}
+              >
+                Use this width
+              </button>
+            </div>
+
+            <p className="hint" style={{ marginTop: 12 }}>Or take a new photo with the frame visible:</p>
             <ul className="modal-tips">
               <li>the whole frame filling the shot, square to the camera</li>
               <li>only white paper (no hands, table, or clutter) around it</li>

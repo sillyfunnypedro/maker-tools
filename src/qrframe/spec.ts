@@ -73,7 +73,12 @@ export const STANDARD_SPECS: QrFrameSpec[] = [
   { id: "a2", innerW: 355, innerH: 529, scaleMm: 150, marginL: 38, marginT: 38, marginR: 9, marginB: 9, qrX: 5, qrY: 5, qrSize: 30, dotSpacing: 16, dotD: 5 },
 ];
 
-/** Current format: `magic;id;innerW;innerH;scaleMm`, layout looked up by id. */
+/** The live app URL — QR codes encode this with the spec in the fragment. */
+const APP_URL = "https://sillyfunnypedro.github.io/maker-tools/";
+
+/** Current format: URL with spec in the fragment.
+ *  e.g. https://sillyfunnypedro.github.io/maker-tools/#SGF2;std;154;172;90
+ *  Scanning with a phone camera opens the website; the app detector parses it. */
 export const PAYLOAD_MAGIC = "SGF2";
 /** Original format: `magic;id;innerW;innerH;scaleMm;marginL;marginT;marginR;
  *  marginB;qrX;qrY;qrSize;dotSpacing;dotD` — fully self-describing, no lookup.
@@ -81,11 +86,20 @@ export const PAYLOAD_MAGIC = "SGF2";
 const PAYLOAD_MAGIC_LEGACY = "SGF1";
 
 export function encodePayload(s: QrFrameSpec): string {
-  return [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm].join(";");
+  const spec = [PAYLOAD_MAGIC, s.id, s.innerW, s.innerH, s.scaleMm].join(";");
+  return `${APP_URL}#${spec}`;
 }
 
 export function decodePayload(text: string): QrFrameSpec | null {
-  const p = text.split(";");
+  // New format: URL with spec in the fragment after #
+  let payload = text;
+  if (text.startsWith("http")) {
+    const hashIdx = text.indexOf("#");
+    if (hashIdx < 0) return null;
+    payload = text.slice(hashIdx + 1);
+  }
+
+  const p = payload.split(";");
   if (p[0] === PAYLOAD_MAGIC_LEGACY && p.length >= 14) {
     const n = (i: number) => Number(p[i]);
     return {
