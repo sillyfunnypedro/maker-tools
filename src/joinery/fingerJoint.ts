@@ -160,7 +160,7 @@ function notchesToSvg(notches: Contour[], width: number, height: number, _label?
 
   const paths = notches.map((c) => {
     const d = pathData(c, 1, 4);
-    return `    <path fill="rgb(0,0,0)" stroke="none" d="${d}"/>`;
+    return `    <path fill="rgb(255,255,255)" stroke="rgb(0,0,0)" stroke-width="0.5" d="${d}"/>`;
   }).join("\n");
 
   // Y-flip: part coords have y-up, SVG is y-down.

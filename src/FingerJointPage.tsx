@@ -86,9 +86,10 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board A — {joint.notchesA.length} notch{joint.notchesA.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-32 -${thickness + 2} ${width + 64} ${thickness + 22 + 2}`}
+              viewBox={`-32 -22 ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
+              style={{ transform: "scaleY(-1)" }}
             >
               {joint.notchesA.map((c, i) => (
                 <path
@@ -99,7 +100,7 @@ export function FingerJointPage() {
                   d={pathData(c)}
                 />
               ))}
-              <polygon points="0,0 5,0 0,-5" fill="red" opacity={0.6} />
+              <polygon points="0,0 5,0 0,5" fill="red" opacity={0.6} />
             </svg>
             <button onClick={() => download(joint.svgA, "finger-joint-A.svg")}>
               Download A
@@ -108,9 +109,10 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board B — {joint.notchesB.length} notch{joint.notchesB.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-32 -${thickness + 2} ${width + 64} ${thickness + 22 + 2}`}
+              viewBox={`-32 -22 ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
+              style={{ transform: "scaleY(-1)" }}
             >
               {joint.notchesB.map((c, i) => (
                 <path
@@ -121,7 +123,7 @@ export function FingerJointPage() {
                   d={pathData(c)}
                 />
               ))}
-              <polygon points="0,0 5,0 0,-5" fill="red" opacity={0.6} />
+              <polygon points="0,0 5,0 0,5" fill="red" opacity={0.6} />
             </svg>
             <button onClick={() => download(joint.svgB, "finger-joint-B.svg")}>
               Download B
