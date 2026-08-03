@@ -86,11 +86,11 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board A — {joint.notchesA.length} notch{joint.notchesA.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-2 -2 ${width + 4} ${thickness + 4}`}
+              viewBox={`-17 -12 ${width + 34} ${thickness + 14}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g transform={`scale(1,-1) translate(0,${-thickness})`}>
+              <g transform={`scale(1,-1) translate(0,0)`}>
                 {joint.notchesA.map((c, i) => (
                   <path
                     key={i}
@@ -109,11 +109,11 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board B — {joint.notchesB.length} notch{joint.notchesB.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-2 -2 ${width + 4} ${thickness + 4}`}
+              viewBox={`-17 -12 ${width + 34} ${thickness + 14}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g transform={`scale(1,-1) translate(0,${-thickness})`}>
+              <g transform={`scale(1,-1) translate(0,0)`}>
                 {joint.notchesB.map((c, i) => (
                   <path
                     key={i}
