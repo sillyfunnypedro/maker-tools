@@ -142,7 +142,24 @@ function buildProfile(
 
   // Close back to start (top-left) — implicit in the ring
 
-  return relieveRing(points, reliefRadius);
+  // Identify corners at the board edge (y=0) where a notch meets the extension.
+  // These are open — the cutter exits freely, no relief needed.
+  const skipRelief = new Set<number>();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    // A corner at y=0 that's at x=0 or x=width is where a notch opens to the
+    // extension. The adjacent point goes to y=-thickness (the notch wall).
+    if (Math.abs(p.y) < 1e-9 && (Math.abs(p.x) < 1e-9 || Math.abs(p.x - width) < 1e-9)) {
+      const prev = points[(i - 1 + points.length) % points.length];
+      const next = points[(i + 1) % points.length];
+      // If either neighbor is at -thickness, this is the notch-edge junction.
+      if (Math.abs(prev.y + thickness) < 1e-9 || Math.abs(next.y + thickness) < 1e-9) {
+        skipRelief.add(i);
+      }
+    }
+  }
+
+  return relieveRing(points, reliefRadius, skipRelief);
 }
 
 /** Wrap profile as a Shaper-compatible SVG with anchor triangle. */

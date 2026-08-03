@@ -60,8 +60,10 @@ function reliefVectors(c: CornerInfo, side: Side): { along: Vec2; into: Vec2 } {
 /**
  * Turn a polygon ring into a Contour with relieved inside corners.
  * Points must be wound with material on the left (CCW outline, CW cutout).
+ * `skipIndices` optionally lists vertex indices that should NOT be relieved
+ * even if they are inside corners (e.g. open edges).
  */
-export function relieveRing(points: Vec2[], radius: number): Contour {
+export function relieveRing(points: Vec2[], radius: number, skipIndices?: Set<number>): Contour {
   if (radius <= 0) throw new Error("relief radius must be positive");
   const ring = dedupeCollinear(points);
   const corners = classifyCorners(ring);
@@ -71,6 +73,7 @@ export function relieveRing(points: Vec2[], radius: number): Contour {
   const plan = new Map<number, Side>();
   for (const c of corners) {
     if (c.turn >= -EPS) continue; // outside corner or straight
+    if (skipIndices?.has(c.index)) continue; // explicitly skipped (open edge)
     plan.set(c.index, reliefSide(c));
   }
 
