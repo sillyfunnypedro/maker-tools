@@ -1,5 +1,5 @@
 // Finger joint generator page: input board dimensions and bit size,
-// preview and download two complementary SVG cut profiles.
+// preview and download two complementary SVG notch cutout files.
 
 import { useCallback, useMemo, useState } from "react";
 import { generateFingerJoint, type FingerJointResult } from "./joinery/fingerJoint";
@@ -34,16 +34,14 @@ export function FingerJointPage() {
 
   const isError = typeof result === "string";
   const joint = isError ? null : result;
-
-  // Effective finger count (forced odd)
   const effectiveCount = fingerCount % 2 === 0 ? fingerCount + 1 : fingerCount;
 
   return (
     <div className="finger-joint-page">
       <p className="sub">
-        Generate two complementary finger-joint cut profiles for a CNC router.
-        Each inside corner gets a semicircular relief pocket so the joint
-        assembles cleanly with a round bit.
+        Generate finger-joint notch cutouts for a CNC router. Each notch is a
+        closed interior-cut path with corner relief for a round bit. Fingers
+        point down — place along the board edge in Shaper.
       </p>
 
       <div className="fj-controls">
@@ -86,18 +84,22 @@ export function FingerJointPage() {
       {joint && (
         <div className="fj-preview">
           <div className="fj-profile">
-            <h3>Board A (fingers at ends)</h3>
+            <h3>Board A — {joint.notchesA.length} notch{joint.notchesA.length !== 1 ? "es" : ""}</h3>
             <svg
               viewBox={`-2 -2 ${width + 4} ${thickness + 4}`}
               className="fj-svg"
+              preserveAspectRatio="xMidYMid meet"
             >
               <g transform={`scale(1,-1) translate(0,${-thickness})`}>
-                <path
-                  fill="rgba(100,160,255,0.15)"
-                  stroke="#000"
-                  strokeWidth={0.3}
-                  d={pathData(joint.profileA)}
-                />
+                {joint.notchesA.map((c, i) => (
+                  <path
+                    key={i}
+                    fill="rgba(100,160,255,0.2)"
+                    stroke="#1a5cff"
+                    strokeWidth={0.3}
+                    d={pathData(c)}
+                  />
+                ))}
               </g>
             </svg>
             <button onClick={() => download(joint.svgA, "finger-joint-A.svg")}>
@@ -105,18 +107,22 @@ export function FingerJointPage() {
             </button>
           </div>
           <div className="fj-profile">
-            <h3>Board B (notches at ends)</h3>
+            <h3>Board B — {joint.notchesB.length} notch{joint.notchesB.length !== 1 ? "es" : ""}</h3>
             <svg
               viewBox={`-2 -2 ${width + 4} ${thickness + 4}`}
               className="fj-svg"
+              preserveAspectRatio="xMidYMid meet"
             >
               <g transform={`scale(1,-1) translate(0,${-thickness})`}>
-                <path
-                  fill="rgba(255,160,100,0.15)"
-                  stroke="#000"
-                  strokeWidth={0.3}
-                  d={pathData(joint.profileB)}
-                />
+                {joint.notchesB.map((c, i) => (
+                  <path
+                    key={i}
+                    fill="rgba(255,160,100,0.2)"
+                    stroke="#cc5500"
+                    strokeWidth={0.3}
+                    d={pathData(c)}
+                  />
+                ))}
               </g>
             </svg>
             <button onClick={() => download(joint.svgB, "finger-joint-B.svg")}>

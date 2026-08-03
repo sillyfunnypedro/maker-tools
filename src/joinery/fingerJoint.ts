@@ -1,11 +1,15 @@
-// Finger joint generator: produces two complementary cut profiles.
+// Finger joint generator: produces two complementary sets of notch cutouts.
 //
 // Input: board width (mm), board thickness (mm), number of fingers (odd),
 //        bit diameter (mm), clearance (mm, default 0.0254 = 1 thou).
 //
-// Output: two Contours — one for each mating board. Each is a rectangle with
-// notches cut into one edge, with semicircular corner relief at every inside
-// corner so the joint assembles cleanly with a round bit.
+// Output: two sets of closed notch profiles — one for each mating board.
+// Each notch is a closed rectangle (finger-width × thickness) with semicircular
+// corner relief at the inside corners (the bottom two), oriented with the
+// notches opening downward (toward the board edge being cut).
+//
+// For Shaper: place along the board edge, set as interior cuts. The bit follows
+// inside each closed notch path, producing the finger voids.
 
 import { type Vec2, type Contour, vec, pathData, formatNum } from "./geom";
 import { uniformSpans, complementSpans, type Span } from "./fingers";
@@ -25,25 +29,26 @@ export interface FingerJointParams {
 }
 
 export interface FingerJointResult {
-  /** Profile for board A (male at ends — has fingers at both ends). */
-  profileA: Contour;
-  /** Profile for board B (female at ends — has notches at both ends). */
-  profileB: Contour;
+  /** Notch cutouts for board A (voids between A's fingers). */
+  notchesA: Contour[];
+  /** Notch cutouts for board B (voids between B's fingers). */
+  notchesB: Contour[];
   /** Relief radius used. */
   reliefRadius: number;
-  /** SVG markup for profile A. */
+  /** SVG markup for board A's notches (all notches in one file). */
   svgA: string;
-  /** SVG markup for profile B. */
+  /** SVG markup for board B's notches (all notches in one file). */
   svgB: string;
+  /** Combined SVG with both sets side by side. */
+  svgBoth: string;
 }
 
 /**
- * Generate two complementary finger joint profiles.
+ * Generate two complementary sets of finger-joint notch cutouts.
  *
- * Board A has fingers (material) at both ends of the joint edge.
- * Board B has notches (voids) at both ends — it's the complement.
- * Both profiles are full rectangles (width × thickness) with notches
- * cut into the top edge.
+ * Board A has fingers (material) at both ends — its notches are the gaps.
+ * Board B is the complement.
+ * Notches open downward (fingers point down from the board edge).
  */
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
   const { width, thickness, fingerCount, bitDiameter, clearance = 0.0254 } = params;
@@ -63,87 +68,104 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
     );
   }
 
-  // Board A: male at ends (fingers at positions 0,2,4,...)
-  // The "joint edge" is the top edge. Notches are cut down from the top.
-  const spansA = uniformSpans(width, fingerCount, true, 0);  // A's fingers (solid)
-  const notchesA = complementSpans(spansA, 0, width);         // A's voids
+  // Board A: male at ends (fingers at positions 0,2,4,...) — notches are the gaps
+  const spansA = uniformSpans(width, fingerCount, true, 0);
+  const notchSpansA = complementSpans(spansA, 0, width);
 
-  // Board B: female at ends (complement)
-  const spansB = uniformSpans(width, fingerCount, false, 0);  // B's fingers (solid)
-  const notchesB = complementSpans(spansB, 0, width);          // B's voids
+  // Board B: female at ends — notches are at the ends
+  const spansB = uniformSpans(width, fingerCount, false, 0);
+  const notchSpansB = complementSpans(spansB, 0, width);
 
-  const profileA = buildProfile(width, thickness, notchesA, reliefRadius);
-  const profileB = buildProfile(width, thickness, notchesB, reliefRadius);
+  const notchesA = notchSpansA.map((s) => buildNotch(s, thickness, reliefRadius));
+  const notchesB = notchSpansB.map((s) => buildNotch(s, thickness, reliefRadius));
 
-  const svgA = profileToSvg(profileA, width, thickness);
-  const svgB = profileToSvg(profileB, width, thickness);
+  const svgA = notchesToSvg(notchesA, width, thickness, "Board A");
+  const svgB = notchesToSvg(notchesB, width, thickness, "Board B");
+  const svgBoth = bothToSvg(notchesA, notchesB, width, thickness);
 
-  return { profileA, profileB, reliefRadius, svgA, svgB };
+  return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth };
 }
 
 /**
- * Build a board profile: a rectangle with notches cut into the top edge.
- * The ring is wound CCW (material on the left) with the notch bottoms
- * going depth = thickness into the board from the top.
+ * Build a single notch cutout: a closed rectangle (fingerWidth × thickness)
+ * opening downward, with relief at the two inside corners at the top (the
+ * closed end of the notch).
+ *
+ * Wound clockwise (material on the left for an interior cut): the board
+ * material is outside this path, the bit cuts inside it.
+ *
+ * Orientation: the notch opens at y=0 (the board edge) and the closed end
+ * is at y=thickness. Fingers point down.
  */
-function buildProfile(
-  width: number, thickness: number, notches: Span[], reliefRadius: number,
-): Contour {
-  // Build the outline as a polygon (sharp corners), then relieve it.
-  // The board is width × thickness, bottom-left at origin.
-  // Top edge has notches cut down to y=0 (depth = thickness).
-  const points: Vec2[] = [];
+function buildNotch(span: Span, thickness: number, reliefRadius: number): Contour {
+  const [left, right] = span;
 
-  // Start at bottom-left, go CCW:
-  // bottom edge (left to right)
-  points.push(vec(0, 0));
-  points.push(vec(width, 0));
+  // Clockwise winding (for interior cut): start bottom-left, go left along
+  // bottom (the open edge), up the left wall, right along the top (closed end),
+  // down the right wall. The two inside corners are at the top (where the notch
+  // closes into material).
+  //
+  // But we need to be careful: "material on the left" for CW means material is
+  // outside this path. The inside corners (where the cutter can't reach) are the
+  // top-left and top-right corners of the notch rectangle.
+  const points: Vec2[] = [
+    vec(left, 0),        // bottom-left (open edge)
+    vec(left, thickness),  // top-left (inside corner)
+    vec(right, thickness), // top-right (inside corner)
+    vec(right, 0),       // bottom-right (open edge)
+  ];
 
-  // Right edge (bottom to top)
-  points.push(vec(width, thickness));
-
-  // Top edge with notches (right to left)
-  // Walk from right to left along y = thickness, cutting down for each notch.
-  const sortedNotches = [...notches].sort((a, b) => b[0] - a[0]); // right to left
-  let cursor = width;
-
-  for (const [nLeft, nRight] of sortedNotches) {
-    // Walk to the right edge of this notch
-    if (cursor > nRight + 1e-9) {
-      // Already at cursor, need to go left to nRight (still on top edge)
-      points.push(vec(nRight, thickness));
-    }
-    // Drop into the notch
-    points.push(vec(nRight, 0));
-    // Across the notch bottom
-    points.push(vec(nLeft, 0));
-    // Back up to top
-    points.push(vec(nLeft, thickness));
-    cursor = nLeft;
-  }
-
-  // Finish the top edge back to the left side
-  if (cursor > 1e-9) {
-    points.push(vec(0, thickness));
-  }
-
-  // Relieve inside corners
+  // This is CW winding — relieve expects material-on-left which is CW for cutouts.
   return relieveRing(points, reliefRadius);
 }
 
-/** Wrap a contour as a standalone SVG document in mm. */
-function profileToSvg(contour: Contour, width: number, height: number): string {
-  // Flip Y for SVG (y-down): use a transform.
-  const d = pathData(contour, 1, 4);
-  const margin = 2; // mm around the part
+/** Wrap notch contours as a Shaper-compatible SVG: interior cuts in mm. */
+function notchesToSvg(notches: Contour[], width: number, height: number, _label?: string): string {
+  const margin = 2;
   const svgW = width + 2 * margin;
   const svgH = height + 2 * margin;
+  const paths = notches.map((c) => {
+    const d = pathData(c, 1, 4);
+    return `    <path fill="rgb(255,255,255)" stroke="rgb(0,0,0)" stroke-width="0.2" d="${d}"/>`;
+  }).join("\n");
+
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${formatNum(svgW)}mm" height="${formatNum(svgH)}mm" ` +
       `viewBox="0 0 ${formatNum(svgW)} ${formatNum(svgH)}">`,
     `  <g transform="translate(${margin},${margin}) scale(1,-1) translate(0,${-height})">`,
-    `    <path fill="none" stroke="#000000" stroke-width="0.2" d="${d}"/>`,
+    paths,
+    `  </g>`,
+    `</svg>`,
+  ].join("\n");
+}
+
+/** Both sets side by side for preview. */
+function bothToSvg(notchesA: Contour[], notchesB: Contour[], width: number, height: number): string {
+  const margin = 2;
+  const gap = 8;
+  const svgW = 2 * width + gap + 2 * margin;
+  const svgH = height + 2 * margin;
+
+  const pathsA = notchesA.map((c) => {
+    const d = pathData(c, 1, 4);
+    return `    <path fill="rgba(100,160,255,0.15)" stroke="#000" stroke-width="0.2" d="${d}"/>`;
+  }).join("\n");
+
+  const pathsB = notchesB.map((c) => {
+    const d = pathData(c, 1, 4);
+    return `    <path fill="rgba(255,160,100,0.15)" stroke="#000" stroke-width="0.2" d="${d}"/>`;
+  }).join("\n");
+
+  return [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${formatNum(svgW)}mm" height="${formatNum(svgH)}mm" ` +
+      `viewBox="0 0 ${formatNum(svgW)} ${formatNum(svgH)}">`,
+    `  <g transform="translate(${margin},${margin}) scale(1,-1) translate(0,${-height})">`,
+    pathsA,
+    `  </g>`,
+    `  <g transform="translate(${margin + width + gap},${margin}) scale(1,-1) translate(0,${-height})">`,
+    pathsB,
     `  </g>`,
     `</svg>`,
   ].join("\n");
