@@ -89,7 +89,6 @@ export function FingerJointPage() {
               viewBox={`-32 -22 ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
-              style={{ transform: "scaleY(-1)" }}
             >
               {joint.notchesA.map((c, i) => (
                 <path
@@ -112,7 +111,6 @@ export function FingerJointPage() {
               viewBox={`-32 -22 ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
-              style={{ transform: "scaleY(-1)" }}
             >
               {joint.notchesB.map((c, i) => (
                 <path
