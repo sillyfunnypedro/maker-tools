@@ -1,7 +1,7 @@
 // Start screen: pick a tool. The two tools are separate workflows that share the
 // backend processing modules (processing / svg / frameDetect / rectify / worker).
 
-export type Tool = "glass" | "frame" | "frames" | "howto";
+export type Tool = "glass" | "frame" | "frames" | "howto" | "joints";
 
 export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
   return (
@@ -36,6 +36,14 @@ export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
         <small>
           Blank frames to print at true size — draw inside the opening, or cut it
           out and use the sheet as a frame.
+        </small>
+      </button>
+      <button className="start-card" onClick={() => onPick("joints")}>
+        <span className="start-emoji" aria-hidden>🪚</span>
+        <strong>Finger Joints</strong>
+        <small>
+          Generate complementary finger-joint profiles for a CNC router, with
+          corner relief for a round bit.
         </small>
       </button>
     </div>

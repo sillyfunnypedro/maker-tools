@@ -26,6 +26,7 @@ import { rectifyOpening, flattenIllumination, otsuThreshold } from "./rectify";
 import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
+import { FingerJointPage } from "./FingerJointPage";
 import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
 import { DEBUG_DUMP, buildDebugZip, dumpDebugBundle, type DumpInput } from "./debugDump";
 
@@ -79,7 +80,7 @@ export default function App() {
   const autoThreshFor = useRef<DetectResult | null>(null);
   // Top-level tool chosen on the start screen; no back-and-forth. "home" shows
   // the chooser; "glass" = Stained Glass Processor; "frame" = Image Frame -> SVG.
-  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto">("home");
+  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints">("home");
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -879,7 +880,9 @@ export default function App() {
                   ? "Printable SketchFrames"
                   : mode === "howto"
                     ? "How SketchFrame Works"
-                    : "Maker Tools"}
+                    : mode === "joints"
+                      ? "Finger Joints"
+                      : "Maker Tools"}
           </h1>
           {mode !== "home" && (
             <button className="tool-home" onClick={goHome}>← Tools</button>
@@ -904,6 +907,8 @@ export default function App() {
         <FramesPage />
       ) : mode === "howto" ? (
         <TutorialPage onPick={pickTool} />
+      ) : mode === "joints" ? (
+        <FingerJointPage />
       ) : !sourceRef.current && !busy ? (
         <label
           className={`dropzone${dragging ? " dragging" : ""}`}

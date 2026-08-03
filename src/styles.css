@@ -624,3 +624,35 @@ button.primary {
   color: var(--text); font-size: 1rem; text-align: center;
 }
 .manual-width-input:focus { outline: none; border-color: var(--accent); }
+
+/* Finger joint page */
+.finger-joint-page { display: flex; flex-direction: column; gap: 16px; }
+.fj-controls {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.fj-field { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.fj-field span:first-child { color: var(--muted); min-width: 80px; }
+.fj-field input {
+  width: 70px; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 0.95rem; text-align: center;
+}
+.fj-field input:focus { outline: none; border-color: var(--accent); }
+.fj-unit { color: var(--muted); font-size: 0.8rem; }
+.fj-preview { display: flex; flex-direction: column; gap: 16px; }
+.fj-profile {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.fj-profile h3 { margin: 0; font-size: 0.95rem; color: var(--muted); }
+.fj-svg {
+  width: 100%; height: auto; background: white; border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.fj-profile button {
+  align-self: flex-start; font: inherit; border-radius: 8px; padding: 10px 16px;
+  border: 1px solid var(--border); background: var(--accent); color: #06131f;
+  font-weight: 600; cursor: pointer;
+}
