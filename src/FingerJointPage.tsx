@@ -86,21 +86,20 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board A — {joint.notchesA.length} notch{joint.notchesA.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-17 -12 ${width + 34} ${thickness + 14}`}
+              viewBox={`-32 -${thickness + 2} ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g transform={`scale(1,-1) translate(0,0)`}>
-                {joint.notchesA.map((c, i) => (
-                  <path
-                    key={i}
-                    fill="rgba(100,160,255,0.2)"
-                    stroke="#1a5cff"
-                    strokeWidth={0.3}
-                    d={pathData(c)}
-                  />
-                ))}
-              </g>
+              {joint.notchesA.map((c, i) => (
+                <path
+                  key={i}
+                  fill="rgba(100,160,255,0.2)"
+                  stroke="#1a5cff"
+                  strokeWidth={0.3}
+                  d={pathData(c)}
+                />
+              ))}
+              <polygon points="0,0 5,0 0,-5" fill="red" opacity={0.6} />
             </svg>
             <button onClick={() => download(joint.svgA, "finger-joint-A.svg")}>
               Download A
@@ -109,21 +108,20 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board B — {joint.notchesB.length} notch{joint.notchesB.length !== 1 ? "es" : ""}</h3>
             <svg
-              viewBox={`-17 -12 ${width + 34} ${thickness + 14}`}
+              viewBox={`-32 -${thickness + 2} ${width + 64} ${thickness + 22 + 2}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
-              <g transform={`scale(1,-1) translate(0,0)`}>
-                {joint.notchesB.map((c, i) => (
-                  <path
-                    key={i}
-                    fill="rgba(255,160,100,0.2)"
-                    stroke="#cc5500"
-                    strokeWidth={0.3}
-                    d={pathData(c)}
-                  />
-                ))}
-              </g>
+              {joint.notchesB.map((c, i) => (
+                <path
+                  key={i}
+                  fill="rgba(255,160,100,0.2)"
+                  stroke="#cc5500"
+                  strokeWidth={0.3}
+                  d={pathData(c)}
+                />
+              ))}
+              <polygon points="0,0 5,0 0,-5" fill="red" opacity={0.6} />
             </svg>
             <button onClick={() => download(joint.svgB, "finger-joint-B.svg")}>
               Download B
