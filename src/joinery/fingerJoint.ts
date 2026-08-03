@@ -142,21 +142,16 @@ function buildProfile(
 
   // Close back to start (top-left) — implicit in the ring
 
-  // Identify corners at the board edge (y=0) where a notch meets the extension.
-  // These are open — the cutter exits freely, no relief needed.
-  const skipPoints: Vec2[] = [];
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    if (Math.abs(p.y) < 1e-9 && (Math.abs(p.x) < 1e-9 || Math.abs(p.x - width) < 1e-9)) {
-      const prev = points[(i - 1 + points.length) % points.length];
-      const next = points[(i + 1) % points.length];
-      if (Math.abs(prev.y + thickness) < 1e-9 || Math.abs(next.y + thickness) < 1e-9) {
-        skipPoints.push(p);
-      }
-    }
-  }
+  // Identify corners that should NOT be relieved:
+  // - The four corners of the base extension rectangle (the bit handles those fine)
+  // - Edge notch corners at (0,0) and (width,0) where the notch opens to the base
+  const skipPoints: Vec2[] = [
+    vec(-EXT, 0), vec(width + EXT, 0),
+    vec(-EXT, BASE_HEIGHT), vec(width + EXT, BASE_HEIGHT),
+    vec(0, 0), vec(width, 0),
+  ];
 
-  return relieveRing(points, reliefRadius, skipPoints.length > 0 ? skipPoints : undefined);
+  return relieveRing(points, reliefRadius, skipPoints);
 }
 
 /** Wrap profile as a Shaper-compatible SVG with anchor triangle. */
