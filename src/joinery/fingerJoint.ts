@@ -143,12 +143,15 @@ function buildProfile(
   // Close back to start (top-left) — implicit in the ring
 
   // Identify corners that should NOT be relieved:
-  // - The four corners of the base extension rectangle (the bit handles those fine)
-  // - Edge notch corners at (0,0) and (width,0) where the notch opens to the base
+  // - The four corners of the base extension rectangle
+  // - Edge notch corners at the board boundary: (0,0), (width,0), and the
+  //   bottom corners (0,-thickness), (width,-thickness) where the notch floor
+  //   meets the board edge — the cutter exits freely there.
   const skipPoints: Vec2[] = [
     vec(-EXT, 0), vec(width + EXT, 0),
     vec(-EXT, BASE_HEIGHT), vec(width + EXT, BASE_HEIGHT),
     vec(0, 0), vec(width, 0),
+    vec(0, -thickness), vec(width, -thickness),
   ];
 
   return relieveRing(points, reliefRadius, skipPoints);
