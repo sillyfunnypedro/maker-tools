@@ -76,8 +76,8 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const spansB = uniformSpans(width, fingerCount, false, 0);
   const notchSpansB = complementSpans(spansB, 0, width);
 
-  const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius)];
-  const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius)];
+  const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius, false)];
+  const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius, true)];
 
   const svgA = notchesToSvg(notchesA, width, thickness);
   const svgB = notchesToSvg(notchesB, width, thickness);
@@ -97,59 +97,80 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
  */
 function buildProfile(
   width: number, thickness: number, notchSpans: Span[], reliefRadius: number,
+  edgeNotches: boolean,
 ): Contour {
   const EXT = 30; // mm extension past each side
   const BASE_HEIGHT = 20; // mm above the board edge (the cut-across zone)
 
   const points: Vec2[] = [];
+  const sortedDesc = [...notchSpans].sort((a, b) => b[0] - a[0]); // right to left
 
   // CCW winding. Fingers point down (negative y). Base box goes up (positive y).
-  // Start top-left of the base, go right along top, down right side, across
-  // bottom with comb (fingers pointing down), up left side.
 
-  // Top-left of base
+  // Top of base
   points.push(vec(-EXT, BASE_HEIGHT));
-  // Top-right of base
   points.push(vec(width + EXT, BASE_HEIGHT));
-  // Down right side to board edge
-  points.push(vec(width + EXT, 0));
-  // Step in to board width
-  points.push(vec(width, 0));
 
-  // Walk right-to-left along y=0, with notches going DOWN to y=-thickness.
-  const sortedDesc = [...notchSpans].sort((a, b) => b[0] - a[0]); // right to left
-  let cursor = width;
-  for (const [nLeft, nRight] of sortedDesc) {
-    if (cursor > nRight + 1e-9) {
+  if (edgeNotches && sortedDesc.length > 0) {
+    // Board B: notches at both edges. The extension goes straight down to
+    // -thickness on both sides — no coming back up at the board edges.
+
+    // Right side: straight down to notch floor level
+    points.push(vec(width + EXT, -thickness));
+
+    // First (rightmost) notch touches x=width: its right wall IS the extension.
+    // Start from its left edge at notch floor, then come up.
+    const first = sortedDesc[0];
+    points.push(vec(first[0], -thickness));
+    points.push(vec(first[0], 0));
+
+    // Middle notches (not the first or last) — normal up/down
+    for (let i = 1; i < sortedDesc.length - 1; i++) {
+      const [nLeft, nRight] = sortedDesc[i];
       points.push(vec(nRight, 0));
+      points.push(vec(nRight, -thickness));
+      points.push(vec(nLeft, -thickness));
+      points.push(vec(nLeft, 0));
     }
-    // Down into the notch
-    points.push(vec(nRight, -thickness));
-    // Across the notch floor (right to left)
-    points.push(vec(nLeft, -thickness));
-    // Back up
-    points.push(vec(nLeft, 0));
-    cursor = nLeft;
+
+    // Last (leftmost) notch touches x=0: its left wall IS the extension.
+    // Come down from y=0, across its floor, then straight out to the extension.
+    if (sortedDesc.length > 1) {
+      const last = sortedDesc[sortedDesc.length - 1];
+      points.push(vec(last[1], 0));
+      points.push(vec(last[1], -thickness));
+      points.push(vec(-EXT, -thickness));
+    } else {
+      // Single notch spanning the full width — already handled above
+      points.push(vec(-EXT, -thickness));
+    }
+  } else {
+    // Board A: no edge notches. Step in at y=0 on both sides.
+    points.push(vec(width + EXT, 0));
+    points.push(vec(width, 0));
+
+    let cursor = width;
+    for (const [nLeft, nRight] of sortedDesc) {
+      if (cursor > nRight + 1e-9) {
+        points.push(vec(nRight, 0));
+      }
+      points.push(vec(nRight, -thickness));
+      points.push(vec(nLeft, -thickness));
+      points.push(vec(nLeft, 0));
+      cursor = nLeft;
+    }
+
+    if (cursor > 1e-9) {
+      points.push(vec(0, 0));
+    }
+    points.push(vec(-EXT, 0));
   }
 
-  // Finish to left edge
-  if (cursor > 1e-9) {
-    points.push(vec(0, 0));
-  }
-
-  // Step out to extension and up
-  points.push(vec(-EXT, 0));
-
-  // Close back to start (top-left) — implicit in the ring
-
-  // Identify corners that should NOT be relieved:
-  // - The four corners of the base extension rectangle
-  // - Edge notch corners at the board boundary: (0,0), (width,0), and the
-  //   bottom corners (0,-thickness), (width,-thickness) where the notch floor
-  //   meets the board edge — the cutter exits freely there.
+  // Skip relief at base/extension corners — only interior notch corners need it
   const skipPoints: Vec2[] = [
-    vec(-EXT, 0), vec(width + EXT, 0),
     vec(-EXT, BASE_HEIGHT), vec(width + EXT, BASE_HEIGHT),
+    vec(-EXT, 0), vec(width + EXT, 0),
+    vec(-EXT, -thickness), vec(width + EXT, -thickness),
     vec(0, 0), vec(width, 0),
     vec(0, -thickness), vec(width, -thickness),
   ];
