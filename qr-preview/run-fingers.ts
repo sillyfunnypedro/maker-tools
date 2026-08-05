@@ -14,6 +14,7 @@ const width = Number(process.argv[2]) || 150;
 const thickness = Number(process.argv[3]) || 12;
 const fingerCount = Number(process.argv[4]) || 7;
 const bitDiameter = Number(process.argv[5]) || 6.35;
+const reliefStyle = (process.argv[6] || "long") as "long" | "short" | "diagonal";
 
 const outDir = "qr-preview/fingers-result";
 mkdirSync(outDir, { recursive: true });
@@ -21,9 +22,10 @@ mkdirSync(outDir, { recursive: true });
 console.log(`\nFinger Joint Generator (offline)`);
 console.log(`  Width: ${width}mm, Thickness: ${thickness}mm`);
 console.log(`  Fingers: ${fingerCount}, Bit: ${bitDiameter}mm`);
+console.log(`  Relief style: ${reliefStyle}`);
 console.log(`  Output: ${outDir}/\n`);
 
-const result = generateFingerJoint({ width, thickness, fingerCount, bitDiameter });
+const result = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle });
 
 console.log(`  Relief radius: ${result.reliefRadius.toFixed(3)}mm`);
 console.log(`  Finger width: ${(width / fingerCount).toFixed(2)}mm`);
@@ -168,10 +170,31 @@ const verifyOffsetSvg = `<?xml version="1.0" encoding="UTF-8"?>
 writeFileSync(`${outDir}/debug-raw.svg`, debugSvg);
 writeFileSync(`${outDir}/debug-offset.svg`, verifyOffsetSvg);
 
+// Generate comparison of all three relief styles
+const styles = ["long", "short", "diagonal"] as const;
+const compareH = 3 * (vbH + 10);
+let compareBody = "";
+for (let s = 0; s < styles.length; s++) {
+  const st = styles[s];
+  const r = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle: st });
+  const d = pathData(r.notchesA[0], 1, 4);
+  const yOff = s * (vbH + 10);
+  compareBody += `  <g transform="translate(0, ${yOff})">
+    <text x="${vbX + 3}" y="${vbY + 5}" font-size="3" fill="#333">${st}</text>
+    <path fill="rgba(100,160,255,0.15)" stroke="blue" stroke-width="0.3" d="${d}"/>
+    <circle cx="0" cy="0" r="1" fill="green"/>
+  </g>\n`;
+}
+const compareSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${vbW}mm" height="${compareH}mm" viewBox="${vbX} ${vbY} ${vbW} ${compareH}">
+${compareBody}</svg>`;
+writeFileSync(`${outDir}/compare-styles.svg`, compareSvg);
+
 console.log(`\nWrote:`);
 console.log(`  ${outDir}/board-A.svg (Shaper export)`);
 console.log(`  ${outDir}/board-B.svg (Shaper export)`);
 console.log(`  ${outDir}/debug-raw.svg (raw geometry on grid)`);
 console.log(`  ${outDir}/debug-offset.svg (offset verification on grid)`);
+console.log(`  ${outDir}/compare-styles.svg (long vs short vs diagonal)`);
 console.log(`    Board A offset: (+20, -5)`);
 console.log(`    Board B offset: (-15, +3)`);

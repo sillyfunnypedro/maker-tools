@@ -13,7 +13,7 @@
 
 import { type Vec2, type Contour, vec, pathData, formatNum } from "./geom";
 import { uniformSpans, complementSpans, type Span } from "./fingers";
-import { relieveRing } from "./relief";
+import { relieveRing, type ReliefStyle } from "./relief";
 
 export interface FingerJointParams {
   /** Board width along the joint edge (mm). */
@@ -34,6 +34,8 @@ export interface FingerJointParams {
   offsetBX?: number;
   /** Y offset for Board B's geometry relative to anchor (mm). */
   offsetBY?: number;
+  /** Relief style: "long" (default), "short", or "diagonal". */
+  reliefStyle?: ReliefStyle;
 }
 
 export interface FingerJointResult {
@@ -64,7 +66,7 @@ export interface FingerJointResult {
  */
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
   const { width, thickness, fingerCount, bitDiameter, clearance = 0.0254,
-    offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0 } = params;
+    offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0, reliefStyle = "long" } = params;
 
   if (width <= 0) throw new Error("width must be positive");
   if (thickness <= 0) throw new Error("thickness must be positive");
@@ -89,8 +91,8 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const spansB = uniformSpans(width, fingerCount, false, 0);
   const notchSpansB = complementSpans(spansB, 0, width);
 
-  const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius, false)];
-  const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius, true)];
+  const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius, false, reliefStyle)];
+  const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius, true, reliefStyle)];
 
   const svgA = notchesToSvg(notchesA, width, thickness, offsetAX, offsetAY);
   const svgB = notchesToSvg(notchesB, width, thickness, offsetBX, offsetBY);
@@ -106,7 +108,7 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
  */
 function buildProfile(
   width: number, thickness: number, notchSpans: Span[], reliefRadius: number,
-  edgeNotches: boolean,
+  edgeNotches: boolean, reliefStyle: ReliefStyle,
 ): Contour {
   const EXT = 30; // mm extension past each side
   const BASE_HEIGHT = 20; // mm above the board edge (negative y = SVG up)
@@ -175,7 +177,7 @@ function buildProfile(
     vec(0, thickness), vec(width, thickness),
   ];
 
-  return relieveRing(points, reliefRadius, skipPoints);
+  return relieveRing(points, reliefRadius, skipPoints, reliefStyle);
 }
 
 /** Wrap profile as a Shaper-compatible SVG with anchor triangle.
