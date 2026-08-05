@@ -18,8 +18,10 @@ import { relieveRing, type ReliefStyle } from "./relief";
 export interface FingerJointParams {
   /** Board width along the joint edge (mm). */
   width: number;
-  /** Board thickness / material thickness (mm). */
-  thickness: number;
+  /** Thickness of Board A (mm). Board B's notches are this deep. */
+  thicknessA: number;
+  /** Thickness of Board B (mm). Board A's notches are this deep. */
+  thicknessB: number;
   /** Number of fingers (must be odd). */
   fingerCount: number;
   /** Cutter bit diameter (mm). */
@@ -65,11 +67,11 @@ export interface FingerJointResult {
  * Notches open downward (fingers point down from the board edge).
  */
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
-  const { width, thickness, fingerCount, bitDiameter, clearance = 0.0254,
+  const { width, thicknessA, thicknessB, fingerCount, bitDiameter, clearance = 0.0254,
     offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0, reliefStyle = "long" } = params;
 
   if (width <= 0) throw new Error("width must be positive");
-  if (thickness <= 0) throw new Error("thickness must be positive");
+  if (thicknessA <= 0 || thicknessB <= 0) throw new Error("thickness must be positive");
   if (fingerCount < 1 || fingerCount % 2 === 0) throw new Error("finger count must be odd and >= 1");
   if (bitDiameter <= 0) throw new Error("bit diameter must be positive");
 
@@ -91,12 +93,14 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const spansB = uniformSpans(width, fingerCount, false, 0);
   const notchSpansB = complementSpans(spansB, 0, width);
 
-  const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius, false, reliefStyle)];
-  const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius, true, reliefStyle)];
+  // Board A's notches are thicknessB deep (receives B's fingers)
+  // Board B's notches are thicknessA deep (receives A's fingers)
+  const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, false, reliefStyle)];
+  const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, true, reliefStyle)];
 
-  const svgA = notchesToSvg(notchesA, width, thickness, offsetAX, offsetAY);
-  const svgB = notchesToSvg(notchesB, width, thickness, offsetBX, offsetBY);
-  const svgBoth = bothToSvg(notchesA, notchesB, width, thickness);
+  const svgA = notchesToSvg(notchesA, width, thicknessB, offsetAX, offsetAY);
+  const svgB = notchesToSvg(notchesB, width, thicknessA, offsetBX, offsetBY);
+  const svgBoth = bothToSvg(notchesA, notchesB, width, Math.max(thicknessA, thicknessB));
 
   return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth, notchCountA: notchSpansA.length, notchCountB: notchSpansB.length };
 }

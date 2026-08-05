@@ -26,7 +26,8 @@ function getNum(key: string, fallback: number): number {
 export function FingerJointPage() {
   // Store as strings so the user can type freely (empty, "-", etc.)
   const [widthStr, setWidthStr] = useState(() => getCookie("width") || "150");
-  const [thicknessStr, setThicknessStr] = useState(() => getCookie("thickness") || "12");
+  const [thicknessAStr, setThicknessAStr] = useState(() => getCookie("thicknessA") || "12");
+  const [thicknessBStr, setThicknessBStr] = useState(() => getCookie("thicknessB") || "12");
   const [fingerCountStr, setFingerCountStr] = useState(() => getCookie("fingers") || "7");
   const [bitDiameter, setBitDiameter] = useState(() => getNum("bit", 6.35));
   const [reliefStyle, setReliefStyle] = useState<ReliefStyle>(() => (getCookie("relief") as ReliefStyle) || "long");
@@ -38,7 +39,8 @@ export function FingerJointPage() {
 
   // Parse to numbers (NaN-safe)
   const width = Number(widthStr) || 0;
-  const thickness = Number(thicknessStr) || 0;
+  const thicknessA = Number(thicknessAStr) || 0;
+  const thicknessB = Number(thicknessBStr) || 0;
   const fingerCount = Number(fingerCountStr) || 1;
   const offsetAX = Number(offsetAXStr) || 0;
   const offsetAY = Number(offsetAYStr) || 0;
@@ -47,7 +49,8 @@ export function FingerJointPage() {
 
   // Persist to cookies
   useEffect(() => { setCookie("width", widthStr); }, [widthStr]);
-  useEffect(() => { setCookie("thickness", thicknessStr); }, [thicknessStr]);
+  useEffect(() => { setCookie("thicknessA", thicknessAStr); }, [thicknessAStr]);
+  useEffect(() => { setCookie("thicknessB", thicknessBStr); }, [thicknessBStr]);
   useEffect(() => { setCookie("fingers", fingerCountStr); }, [fingerCountStr]);
   useEffect(() => { setCookie("bit", String(bitDiameter)); }, [bitDiameter]);
   useEffect(() => { setCookie("relief", reliefStyle); }, [reliefStyle]);
@@ -62,13 +65,13 @@ export function FingerJointPage() {
   const result = useMemo((): FingerJointResult | string => {
     try {
       return generateFingerJoint({
-        width, thickness, fingerCount: effectiveCount, bitDiameter,
+        width, thicknessA, thicknessB, fingerCount: effectiveCount, bitDiameter,
         offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle,
       });
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
     }
-  }, [width, thickness, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle]);
+  }, [width, thicknessA, thicknessB, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle]);
 
   const download = useCallback((svg: string, filename: string) => {
     const prefix = projectName.trim().replace(/[/\\:*?"<>|]/g, "-");
@@ -93,7 +96,8 @@ export function FingerJointPage() {
   const vbX = -EXT - 5;
   const vbY = -BASE_HEIGHT - 5;
   const vbW = width + 2 * EXT + 10;
-  const vbH = thickness + BASE_HEIGHT + 10;
+  const vbHA = thicknessB + BASE_HEIGHT + 10; // A's notches are thicknessB deep
+  const vbHB = thicknessA + BASE_HEIGHT + 10; // B's notches are thicknessA deep
 
   return (
     <div className="finger-joint-page">
@@ -123,10 +127,18 @@ export function FingerJointPage() {
           <span className="fj-unit">mm</span>
         </label>
         <label className="fj-field">
-          <span>Thickness</span>
+          <span>Thickness A</span>
           <input
-            type="text" inputMode="decimal" value={thicknessStr}
-            onChange={(e) => setThicknessStr(e.target.value)}
+            type="text" inputMode="decimal" value={thicknessAStr}
+            onChange={(e) => setThicknessAStr(e.target.value)}
+          />
+          <span className="fj-unit">mm</span>
+        </label>
+        <label className="fj-field">
+          <span>Thickness B</span>
+          <input
+            type="text" inputMode="decimal" value={thicknessBStr}
+            onChange={(e) => setThicknessBStr(e.target.value)}
           />
           <span className="fj-unit">mm</span>
         </label>
@@ -169,13 +181,13 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board A — {effectiveCount - joint.notchCountA} fingers</h3>
             <svg
-              viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+              viewBox={`${vbX} ${vbY} ${vbW} ${vbHA}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
               {/* Grid */}
               <line x1={vbX} y1={0} x2={vbX + vbW} y2={0} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
-              <line x1={0} y1={vbY} x2={0} y2={vbY + vbH} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
+              <line x1={0} y1={vbY} x2={0} y2={vbY + vbHA} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <circle cx={0} cy={0} r={1} fill="green" />
               <g transform={`translate(${offsetAX},${offsetAY})`}>
                 {joint.notchesA.map((c, i) => (
@@ -208,12 +220,12 @@ export function FingerJointPage() {
           <div className="fj-profile">
             <h3>Board B — {effectiveCount - joint.notchCountB} fingers</h3>
             <svg
-              viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+              viewBox={`${vbX} ${vbY} ${vbW} ${vbHB}`}
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
               <line x1={vbX} y1={0} x2={vbX + vbW} y2={0} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
-              <line x1={0} y1={vbY} x2={0} y2={vbY + vbH} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
+              <line x1={0} y1={vbY} x2={0} y2={vbY + vbHB} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <circle cx={0} cy={0} r={1} fill="green" />
               <g transform={`translate(${offsetBX},${offsetBY})`}>
                 {joint.notchesB.map((c, i) => (

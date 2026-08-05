@@ -25,7 +25,7 @@ console.log(`  Fingers: ${fingerCount}, Bit: ${bitDiameter}mm`);
 console.log(`  Relief style: ${reliefStyle}`);
 console.log(`  Output: ${outDir}/\n`);
 
-const result = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle });
+const result = generateFingerJoint({ width, thicknessA: thickness, thicknessB: thickness, fingerCount, bitDiameter, reliefStyle });
 
 console.log(`  Relief radius: ${result.reliefRadius.toFixed(3)}mm`);
 console.log(`  Finger width: ${(width / fingerCount).toFixed(2)}mm`);
@@ -76,7 +76,7 @@ const rawB = pathData(result.notchesB[0], 1, 4);
 
 // Also generate offset versions to verify offset works
 const resultOffset = generateFingerJoint({
-  width, thickness, fingerCount: fingerCount % 2 === 0 ? fingerCount + 1 : fingerCount,
+  width, thicknessA: thickness, thicknessB: thickness, fingerCount: fingerCount % 2 === 0 ? fingerCount + 1 : fingerCount,
   bitDiameter, offsetAX: 20, offsetAY: -5, offsetBX: -15, offsetBY: 3,
 });
 
@@ -183,7 +183,7 @@ const detailSize = thickness + 10;
 let compareBody = "";
 for (let s = 0; s < styles.length; s++) {
   const st = styles[s];
-  const r = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle: st });
+  const r = generateFingerJoint({ width, thicknessA: thickness, thicknessB: thickness, fingerCount, bitDiameter, reliefStyle: st });
   const d = pathData(r.notchesA[0], 1, 4);
   const yOff = s * (vbH + 10);
   compareBody += `  <g transform="translate(0, ${yOff})">
@@ -197,7 +197,7 @@ for (let s = 0; s < styles.length; s++) {
 let detailBody = "";
 for (let s = 0; s < styles.length; s++) {
   const st = styles[s];
-  const r = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle: st });
+  const r = generateFingerJoint({ width, thicknessA: thickness, thicknessB: thickness, fingerCount, bitDiameter, reliefStyle: st });
   const d = pathData(r.notchesA[0], 1, 4);
   const yOff = s * (detailSize + 5);
   // 1mm grid around the first corner
