@@ -36,6 +36,10 @@ export interface FingerJointParams {
   offsetBX?: number;
   /** Y offset for Board B's geometry relative to anchor (mm). */
   offsetBY?: number;
+  /** Board A insert mode: fingers insert into middle of other board (not at edge). */
+  insertA?: boolean;
+  /** Board B insert mode: fingers insert into middle of other board (not at edge). */
+  insertB?: boolean;
   /** Relief style: "long" (default), "short", or "diagonal". */
   reliefStyle?: ReliefStyle;
 }
@@ -68,7 +72,8 @@ export interface FingerJointResult {
  */
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
   const { width, thicknessA, thicknessB, fingerCount, bitDiameter, clearance = 0.0254,
-    offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0, reliefStyle = "long" } = params;
+    offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0,
+    insertA: _insertA = false, insertB = false, reliefStyle = "long" } = params;
 
   if (width <= 0) throw new Error("width must be positive");
   if (thicknessA <= 0 || thicknessB <= 0) throw new Error("thickness must be positive");
@@ -93,10 +98,14 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const spansB = uniformSpans(width, fingerCount, false, 0);
   const notchSpansB = complementSpans(spansB, 0, width);
 
-  // Board A's notches are thicknessB deep (receives B's fingers)
-  // Board B's notches are thicknessA deep (receives A's fingers)
-  const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, false, reliefStyle)];
-  const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, true, reliefStyle)];
+  // Board A: male at ends (fingers at edges) — notches are always internal.
+  // Board B: female at ends (notches at edges) — unless insert mode, where
+  // the notches are also internal (the fingers insert into the middle of A).
+  const edgeNotchesA = false; // A never has edge notches
+  const edgeNotchesB = !insertB; // B has edge notches unless inserting
+
+  const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, edgeNotchesA, reliefStyle)];
+  const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, edgeNotchesB, reliefStyle)];
 
   const svgA = notchesToSvg(notchesA, width, thicknessB, offsetAX, offsetAY);
   const svgB = notchesToSvg(notchesB, width, thicknessA, offsetBX, offsetBY);

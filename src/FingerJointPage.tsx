@@ -31,6 +31,8 @@ export function FingerJointPage() {
   const [fingerCountStr, setFingerCountStr] = useState(() => getCookie("fingers") || "7");
   const [bitDiameter, setBitDiameter] = useState(() => getNum("bit", 6.35));
   const [reliefStyle, setReliefStyle] = useState<ReliefStyle>(() => (getCookie("relief") as ReliefStyle) || "long");
+  const [insertA, setInsertA] = useState(() => getCookie("insertA") === "true");
+  const [insertB, setInsertB] = useState(() => getCookie("insertB") === "true");
   const [projectName, setProjectName] = useState(() => getCookie("name") || "");
   const [offsetAXStr, setOffsetAXStr] = useState(() => getCookie("oax") || "0");
   const [offsetAYStr, setOffsetAYStr] = useState(() => getCookie("oay") || "0");
@@ -54,6 +56,8 @@ export function FingerJointPage() {
   useEffect(() => { setCookie("fingers", fingerCountStr); }, [fingerCountStr]);
   useEffect(() => { setCookie("bit", String(bitDiameter)); }, [bitDiameter]);
   useEffect(() => { setCookie("relief", reliefStyle); }, [reliefStyle]);
+  useEffect(() => { setCookie("insertA", String(insertA)); }, [insertA]);
+  useEffect(() => { setCookie("insertB", String(insertB)); }, [insertB]);
   useEffect(() => { setCookie("name", projectName); }, [projectName]);
   useEffect(() => { setCookie("oax", offsetAXStr); }, [offsetAXStr]);
   useEffect(() => { setCookie("oay", offsetAYStr); }, [offsetAYStr]);
@@ -66,12 +70,12 @@ export function FingerJointPage() {
     try {
       return generateFingerJoint({
         width, thicknessA, thicknessB, fingerCount: effectiveCount, bitDiameter,
-        offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle,
+        offsetAX, offsetAY, offsetBX, offsetBY, insertA, insertB, reliefStyle,
       });
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
     }
-  }, [width, thicknessA, thicknessB, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle]);
+  }, [width, thicknessA, thicknessB, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, insertA, insertB, reliefStyle]);
 
   const download = useCallback((svg: string, filename: string) => {
     const prefix = projectName.trim().replace(/[/\\:*?"<>|]/g, "-");
@@ -171,6 +175,20 @@ export function FingerJointPage() {
             <option value="short">Short side</option>
             <option value="diagonal">45° diagonal</option>
           </select>
+        </label>
+        <label className="fj-field">
+          <span>Board A</span>
+          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <input type="checkbox" checked={insertA} onChange={(e) => setInsertA(e.target.checked)} />
+            Insert
+          </label>
+        </label>
+        <label className="fj-field">
+          <span>Board B</span>
+          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <input type="checkbox" checked={insertB} onChange={(e) => setInsertB(e.target.checked)} />
+            Insert
+          </label>
         </label>
       </div>
 
