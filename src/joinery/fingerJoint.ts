@@ -102,26 +102,12 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   // Board B: female at ends (notches at edges) — unless insert mode, where
   // the notches are also internal (the fingers insert into the middle of A).
   const edgeNotchesA = false; // A never has edge notches
-  const edgeNotchesB = !insertB; // B has edge notches unless inserting
+  const edgeNotchesB = true;  // B always has edge notches (straight across) — insertB only affects A
 
-  const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, edgeNotchesA, reliefStyle)];
+  const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, edgeNotchesA, reliefStyle, insertB)];
   const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, edgeNotchesB, reliefStyle)];
 
-  // When B inserts into A, add mortise slots to A at B's finger positions.
-  // Each slot is a closed rectangle (fingerWidth × thicknessB) with relief at all corners.
-  if (insertB) {
-    for (const [left, right] of spansB) {
-      // Slot goes from board edge (y=0) down to y=thicknessB.
-      // CW winding for interior cut (material outside the path).
-      const slotPoints: Vec2[] = [
-        vec(left, 0),
-        vec(right, 0),
-        vec(right, thicknessB),
-        vec(left, thicknessB),
-      ];
-      notchesA.push(relieveRing(slotPoints, reliefRadius, undefined, reliefStyle));
-    }
-  }
+  // When B inserts into A, the profile already extends at depth — no separate slots needed.
 
   // When A inserts into B, add mortise slots to B at A's finger positions.
   if (insertA) {
@@ -150,7 +136,7 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
  */
 function buildProfile(
   width: number, thickness: number, notchSpans: Span[], reliefRadius: number,
-  edgeNotches: boolean, reliefStyle: ReliefStyle,
+  edgeNotches: boolean, reliefStyle: ReliefStyle, insertMode = false,
 ): Contour {
   const EXT = 30; // mm extension past each side
   const BASE_HEIGHT = 20; // mm above the board edge (negative y = SVG up)
@@ -188,8 +174,32 @@ function buildProfile(
     } else {
       points.push(vec(-EXT, thickness));
     }
+  } else if (insertMode) {
+    // Insert mode: both sides extend out at finger depth.
+    // Right: extension at depth → up to board edge → comb → down at left edge → extension at depth
+    points.push(vec(width + EXT, thickness)); // right extension at depth
+    points.push(vec(width, thickness));        // right edge at depth
+    points.push(vec(width, 0));                // up to board edge (relief corner here)
+
+    let cursor = width;
+    for (const [nLeft, nRight] of sortedDesc) {
+      if (cursor > nRight + 1e-9) {
+        points.push(vec(nRight, 0));
+      }
+      points.push(vec(nRight, thickness));
+      points.push(vec(nLeft, thickness));
+      points.push(vec(nLeft, 0));
+      cursor = nLeft;
+    }
+
+    // At the left edge: descend to finger depth, then extend out
+    if (cursor > 1e-9) {
+      points.push(vec(0, 0));
+    }
+    points.push(vec(0, thickness));     // down to finger depth at x=0 (relief corner here)
+    points.push(vec(-EXT, thickness));  // across to extension at depth
   } else {
-    // Board A: step in at y=0 on both sides.
+    // Normal Board A: step in at y=0 on both sides.
     points.push(vec(width + EXT, 0));
     points.push(vec(width, 0));
 
@@ -242,7 +252,7 @@ function notchesToSvg(
   // Shaper anchor: red right triangle at origin, pointing up (-y), 2:1 aspect.
   const ax = 5; // short side (x)
   const ay = 10; // long side (y), pointing up
-  const anchor = `    <polygon points="0,0 ${ax},0 0,${-ay}" fill="red" stroke="none"/>`;
+  const anchor = `    <polygon points="0,${height} ${ax},${height} 0,${height - ay}" fill="red" stroke="none"/>`;
 
   const paths = notches.map((c, i) => {
     const d = pathData(c, 1, 4);

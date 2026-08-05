@@ -218,7 +218,7 @@ export function FingerJointPage() {
                   />
                 ))}
               </g>
-              <polygon points="0,0 5,0 0,-10" fill="red" opacity={0.7} />
+              <polygon points={`0,${thicknessB} 5,${thicknessB} 0,${thicknessB - 10}`} fill="red" opacity={0.7} />
             </svg>
             <div className="fj-offset-row">
               <label>
@@ -256,7 +256,7 @@ export function FingerJointPage() {
                   />
                 ))}
               </g>
-              <polygon points="0,0 5,0 0,-10" fill="red" opacity={0.7} />
+              <polygon points={`0,${thicknessA} 5,${thicknessA} 0,${thicknessA - 10}`} fill="red" opacity={0.7} />
             </svg>
             <div className="fj-offset-row">
               <label>
