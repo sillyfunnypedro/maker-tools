@@ -62,19 +62,13 @@ function reliefVectors(c: CornerInfo, side: Side): { along: Vec2; into: Vec2 } {
   return { along: c.dOut, into: vperp(c.dOut) };
 }
 
-/** For diagonal: arc cuts at 45° into the corner void (the notch). */
-function reliefVectorsDiagonal(c: CornerInfo): { along: Vec2; into: Vec2 } {
-  // For a right turn (inside corner), the void is to the RIGHT of travel.
-  // Right-hand normal of dIn: (dIn.y, -dIn.x)
-  // Right-hand normal of dOut: (dOut.y, -dOut.x)
-  // Their average points at 45° into the void.
-  const rIn: Vec2 = { x: c.dIn.y, y: -c.dIn.x };
-  const rOut: Vec2 = { x: c.dOut.y, y: -c.dOut.x };
-  const along = vunit(vadd(rIn, rOut));
-  // "into" is perpendicular to the chord — use left perp so arc bows
-  // away from the void center (toward material).
-  const into = vperp(along);
-  return { along, into };
+/** For diagonal: arc start is r*cos(45°) back on incoming edge, end is r*cos(45°)
+ *  forward on outgoing edge. The arc radius equals the relief radius. */
+function diagonalReliefPoints(c: CornerInfo, radius: number): { start: Vec2; end: Vec2 } {
+  const offset = 2 * radius * Math.cos(Math.PI / 4); // 2r*cos(45°)
+  const start = vadd(c.point, vscale(vneg(c.dIn), offset)); // back along incoming
+  const end = vadd(c.point, vscale(c.dOut, offset));         // forward along outgoing
+  return { start, end };
 }
 
 /**
@@ -126,13 +120,18 @@ export function relieveRing(
 
     // Leading relief at current corner.
     const curPlan = plan.get(cur.index);
-    if (curPlan === "out") {
+    if (curPlan === "diagonal") {
+      // Diagonal replaces the corner: arc from start (on incoming edge) to end (on outgoing edge).
+      const { start, end } = diagonalReliefPoints(cur, radius);
+      // The previous iteration's trailing should have walked to `start`.
+      // Compute bow direction: into the void (right-hand normals averaged).
+      const rIn: Vec2 = { x: cur.dIn.y, y: -cur.dIn.x };
+      const rOut: Vec2 = { x: cur.dOut.y, y: -cur.dOut.x };
+      const into = vneg(vunit(vadd(rIn, rOut)));
+      segs.push(arcSeg(end, radius, arcIsCcw(start, end, into)));
+      walkFrom = end;
+    } else if (curPlan === "out") {
       const { along, into } = reliefVectors(cur, "out");
-      const far = vadd(cur.point, vscale(along, 2 * radius));
-      segs.push(arcSeg(far, radius, arcIsCcw(cur.point, far, into)));
-      walkFrom = far;
-    } else if (curPlan === "diagonal") {
-      const { along, into } = reliefVectorsDiagonal(cur);
       const far = vadd(cur.point, vscale(along, 2 * radius));
       segs.push(arcSeg(far, radius, arcIsCcw(cur.point, far, into)));
       walkFrom = far;
@@ -140,7 +139,7 @@ export function relieveRing(
       walkFrom = cur.point;
     }
 
-    // Trailing relief at next corner.
+    // Trailing: walk to the start of the next corner's relief.
     const nxtPlan = plan.get(nxt.index);
     if (nxtPlan === "in") {
       const { along, into } = reliefVectors(nxt, "in");
@@ -148,10 +147,9 @@ export function relieveRing(
       if (!vclose(near, walkFrom)) segs.push(lineSeg(near));
       segs.push(arcSeg(nxt.point, radius, arcIsCcw(near, nxt.point, into)));
     } else if (nxtPlan === "diagonal") {
-      const { along, into } = reliefVectorsDiagonal(nxt);
-      const near = vadd(nxt.point, vscale(along, 2 * radius));
-      if (!vclose(near, walkFrom)) segs.push(lineSeg(near));
-      segs.push(arcSeg(nxt.point, radius, arcIsCcw(near, nxt.point, into)));
+      // Walk to the diagonal arc's start point (on the incoming edge of nxt).
+      const { start } = diagonalReliefPoints(nxt, radius);
+      if (!vclose(start, walkFrom)) segs.push(lineSeg(start));
     } else {
       if (!vclose(nxt.point, walkFrom)) segs.push(lineSeg(nxt.point));
     }

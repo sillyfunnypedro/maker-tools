@@ -170,9 +170,16 @@ const verifyOffsetSvg = `<?xml version="1.0" encoding="UTF-8"?>
 writeFileSync(`${outDir}/debug-raw.svg`, debugSvg);
 writeFileSync(`${outDir}/debug-offset.svg`, verifyOffsetSvg);
 
-// Generate comparison of all three relief styles
+// Generate comparison of all three relief styles with corner detail grids
 const styles = ["long", "short", "diagonal"] as const;
 const compareH = 3 * (vbH + 10);
+
+// For the detail view, zoom into one notch corner
+const fingerW = width / fingerCount;
+const detailCx = fingerW; // first notch right corner x
+const detailCy = 0;       // board edge
+const detailSize = thickness + 10;
+
 let compareBody = "";
 for (let s = 0; s < styles.length; s++) {
   const st = styles[s];
@@ -185,10 +192,60 @@ for (let s = 0; s < styles.length; s++) {
     <circle cx="0" cy="0" r="1" fill="green"/>
   </g>\n`;
 }
+
+// Add a zoomed detail SVG showing corners with grid
+let detailBody = "";
+for (let s = 0; s < styles.length; s++) {
+  const st = styles[s];
+  const r = generateFingerJoint({ width, thickness, fingerCount, bitDiameter, reliefStyle: st });
+  const d = pathData(r.notchesA[0], 1, 4);
+  const yOff = s * (detailSize + 5);
+  // 1mm grid around the first corner
+  let grid = "";
+  for (let gx = -5; gx <= detailSize; gx += 1) {
+    grid += `<line x1="${gx}" y1="${-5}" x2="${gx}" y2="${detailSize}" stroke="#444" stroke-width="0.05"/>\n`;
+  }
+  for (let gy = -5; gy <= detailSize; gy += 1) {
+    grid += `<line x1="${-5}" y1="${gy}" x2="${detailSize}" y2="${gy}" stroke="#444" stroke-width="0.05"/>\n`;
+  }
+  // 5mm grid
+  for (let gx = -5; gx <= detailSize; gx += 5) {
+    grid += `<line x1="${gx}" y1="${-5}" x2="${gx}" y2="${detailSize}" stroke="#888" stroke-width="0.1"/>\n`;
+  }
+  for (let gy = -5; gy <= detailSize; gy += 5) {
+    grid += `<line x1="${-5}" y1="${gy}" x2="${detailSize}" y2="${gy}" stroke="#888" stroke-width="0.1"/>\n`;
+  }
+
+  detailBody += `  <g transform="translate(0, ${yOff})">
+    <text x="-4" y="-3" font-size="2" fill="#fff">${st} (r=${result.reliefRadius.toFixed(2)}mm)</text>
+    ${grid}
+    <!-- corner at origin -->
+    <g transform="translate(${-detailCx + 5}, ${-detailCy + 5})">
+      <path fill="rgba(100,160,255,0.15)" stroke="blue" stroke-width="0.15" d="${d}"/>
+    </g>
+    <circle cx="5" cy="5" r="0.3" fill="red"/>
+    <text x="5.5" y="4.5" font-size="1.2" fill="red">corner</text>
+    ${st === "diagonal" ? `
+    <!-- Reference circle: center at corner + (-r*cos45, +r*cos45) -->
+    <circle cx="${5 - result.reliefRadius * Math.cos(Math.PI/4)}" cy="${5 + result.reliefRadius * Math.cos(Math.PI/4)}" r="${result.reliefRadius}" fill="none" stroke="yellow" stroke-width="0.15" stroke-dasharray="0.5,0.5"/>
+    <circle cx="${5 - result.reliefRadius * Math.cos(Math.PI/4)}" cy="${5 + result.reliefRadius * Math.cos(Math.PI/4)}" r="0.2" fill="yellow"/>
+    <text x="${5 - result.reliefRadius * Math.cos(Math.PI/4) + 0.5}" y="${5 + result.reliefRadius * Math.cos(Math.PI/4) - 0.5}" font-size="1" fill="yellow">ideal center</text>
+    ` : ""}
+  </g>\n`;
+}
+
+const detailW = detailSize + 10;
+const detailH = 3 * (detailSize + 5) + 5;
+
 const compareSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${vbW}mm" height="${compareH}mm" viewBox="${vbX} ${vbY} ${vbW} ${compareH}">
 ${compareBody}</svg>`;
 writeFileSync(`${outDir}/compare-styles.svg`, compareSvg);
+
+const detailSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${detailW * 4}mm" height="${detailH * 4}mm" viewBox="-5 -5 ${detailW} ${detailH}" style="background:#222">
+${detailBody}</svg>`;
+writeFileSync(`${outDir}/corner-detail.svg`, detailSvg);
 
 console.log(`\nWrote:`);
 console.log(`  ${outDir}/board-A.svg (Shaper export)`);

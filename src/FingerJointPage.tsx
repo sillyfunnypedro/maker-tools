@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { generateFingerJoint, type FingerJointResult } from "./joinery/fingerJoint";
+import { type ReliefStyle } from "./joinery/relief";
 import { pathData } from "./joinery/geom";
 
 const COOKIE_PREFIX = "fj-";
@@ -27,6 +28,7 @@ export function FingerJointPage() {
   const [thickness, setThickness] = useState(() => getNum("thickness", 12));
   const [fingerCount, setFingerCount] = useState(() => getNum("fingers", 7));
   const [bitDiameter, setBitDiameter] = useState(() => getNum("bit", 6.35));
+  const [reliefStyle, setReliefStyle] = useState<ReliefStyle>(() => (getCookie("relief") as ReliefStyle) || "long");
   const [projectName, setProjectName] = useState(() => getCookie("name") || "");
   const [offsetAX, setOffsetAX] = useState(() => getNum("oax", 0));
   const [offsetAY, setOffsetAY] = useState(() => getNum("oay", 0));
@@ -38,6 +40,7 @@ export function FingerJointPage() {
   useEffect(() => { setCookie("thickness", String(thickness)); }, [thickness]);
   useEffect(() => { setCookie("fingers", String(fingerCount)); }, [fingerCount]);
   useEffect(() => { setCookie("bit", String(bitDiameter)); }, [bitDiameter]);
+  useEffect(() => { setCookie("relief", reliefStyle); }, [reliefStyle]);
   useEffect(() => { setCookie("name", projectName); }, [projectName]);
   useEffect(() => { setCookie("oax", String(offsetAX)); }, [offsetAX]);
   useEffect(() => { setCookie("oay", String(offsetAY)); }, [offsetAY]);
@@ -50,12 +53,12 @@ export function FingerJointPage() {
     try {
       return generateFingerJoint({
         width, thickness, fingerCount: effectiveCount, bitDiameter,
-        offsetAX, offsetAY, offsetBX, offsetBY,
+        offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle,
       });
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
     }
-  }, [width, thickness, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY]);
+  }, [width, thickness, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, reliefStyle]);
 
   const download = useCallback((svg: string, filename: string) => {
     const prefix = projectName.trim().replace(/[/\\:*?"<>|]/g, "-");
@@ -134,6 +137,17 @@ export function FingerJointPage() {
             <option value={3.175}>1/8"</option>
             <option value={4.7625}>3/16"</option>
             <option value={6.35}>1/4"</option>
+          </select>
+        </label>
+        <label className="fj-field">
+          <span>Relief style</span>
+          <select
+            value={reliefStyle}
+            onChange={(e) => setReliefStyle(e.target.value as ReliefStyle)}
+          >
+            <option value="long">Long side</option>
+            <option value="short">Short side</option>
+            <option value="diagonal">45° diagonal</option>
           </select>
         </label>
       </div>
