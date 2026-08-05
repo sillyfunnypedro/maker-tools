@@ -24,28 +24,38 @@ function getNum(key: string, fallback: number): number {
 }
 
 export function FingerJointPage() {
-  const [width, setWidth] = useState(() => getNum("width", 150));
-  const [thickness, setThickness] = useState(() => getNum("thickness", 12));
-  const [fingerCount, setFingerCount] = useState(() => getNum("fingers", 7));
+  // Store as strings so the user can type freely (empty, "-", etc.)
+  const [widthStr, setWidthStr] = useState(() => getCookie("width") || "150");
+  const [thicknessStr, setThicknessStr] = useState(() => getCookie("thickness") || "12");
+  const [fingerCountStr, setFingerCountStr] = useState(() => getCookie("fingers") || "7");
   const [bitDiameter, setBitDiameter] = useState(() => getNum("bit", 6.35));
   const [reliefStyle, setReliefStyle] = useState<ReliefStyle>(() => (getCookie("relief") as ReliefStyle) || "long");
   const [projectName, setProjectName] = useState(() => getCookie("name") || "");
-  const [offsetAX, setOffsetAX] = useState(() => getNum("oax", 0));
-  const [offsetAY, setOffsetAY] = useState(() => getNum("oay", 0));
-  const [offsetBX, setOffsetBX] = useState(() => getNum("obx", 0));
-  const [offsetBY, setOffsetBY] = useState(() => getNum("oby", 0));
+  const [offsetAXStr, setOffsetAXStr] = useState(() => getCookie("oax") || "0");
+  const [offsetAYStr, setOffsetAYStr] = useState(() => getCookie("oay") || "0");
+  const [offsetBXStr, setOffsetBXStr] = useState(() => getCookie("obx") || "0");
+  const [offsetBYStr, setOffsetBYStr] = useState(() => getCookie("oby") || "0");
+
+  // Parse to numbers (NaN-safe)
+  const width = Number(widthStr) || 0;
+  const thickness = Number(thicknessStr) || 0;
+  const fingerCount = Number(fingerCountStr) || 1;
+  const offsetAX = Number(offsetAXStr) || 0;
+  const offsetAY = Number(offsetAYStr) || 0;
+  const offsetBX = Number(offsetBXStr) || 0;
+  const offsetBY = Number(offsetBYStr) || 0;
 
   // Persist to cookies
-  useEffect(() => { setCookie("width", String(width)); }, [width]);
-  useEffect(() => { setCookie("thickness", String(thickness)); }, [thickness]);
-  useEffect(() => { setCookie("fingers", String(fingerCount)); }, [fingerCount]);
+  useEffect(() => { setCookie("width", widthStr); }, [widthStr]);
+  useEffect(() => { setCookie("thickness", thicknessStr); }, [thicknessStr]);
+  useEffect(() => { setCookie("fingers", fingerCountStr); }, [fingerCountStr]);
   useEffect(() => { setCookie("bit", String(bitDiameter)); }, [bitDiameter]);
   useEffect(() => { setCookie("relief", reliefStyle); }, [reliefStyle]);
   useEffect(() => { setCookie("name", projectName); }, [projectName]);
-  useEffect(() => { setCookie("oax", String(offsetAX)); }, [offsetAX]);
-  useEffect(() => { setCookie("oay", String(offsetAY)); }, [offsetAY]);
-  useEffect(() => { setCookie("obx", String(offsetBX)); }, [offsetBX]);
-  useEffect(() => { setCookie("oby", String(offsetBY)); }, [offsetBY]);
+  useEffect(() => { setCookie("oax", offsetAXStr); }, [offsetAXStr]);
+  useEffect(() => { setCookie("oay", offsetAYStr); }, [offsetAYStr]);
+  useEffect(() => { setCookie("obx", offsetBXStr); }, [offsetBXStr]);
+  useEffect(() => { setCookie("oby", offsetBYStr); }, [offsetBYStr]);
 
   const effectiveCount = fingerCount % 2 === 0 ? fingerCount + 1 : fingerCount;
 
@@ -107,24 +117,24 @@ export function FingerJointPage() {
         <label className="fj-field">
           <span>Board width</span>
           <input
-            type="number" min={10} step={1} value={width}
-            onChange={(e) => setWidth(Number(e.target.value))}
+            type="text" inputMode="numeric" value={widthStr}
+            onChange={(e) => setWidthStr(e.target.value)}
           />
           <span className="fj-unit">mm</span>
         </label>
         <label className="fj-field">
           <span>Thickness</span>
           <input
-            type="number" min={1} step={0.5} value={thickness}
-            onChange={(e) => setThickness(Number(e.target.value))}
+            type="text" inputMode="numeric" value={thicknessStr}
+            onChange={(e) => setThicknessStr(e.target.value)}
           />
           <span className="fj-unit">mm</span>
         </label>
         <label className="fj-field">
           <span>Fingers</span>
           <input
-            type="number" min={1} step={2} value={effectiveCount}
-            onChange={(e) => setFingerCount(Number(e.target.value))}
+            type="text" inputMode="numeric" value={fingerCountStr}
+            onChange={(e) => setFingerCountStr(e.target.value)}
           />
           <span className="fj-unit">odd</span>
         </label>
@@ -182,12 +192,12 @@ export function FingerJointPage() {
             </svg>
             <div className="fj-offset-row">
               <label>
-                Offset X: <input type="number" step={1} value={offsetAX}
-                  onChange={(e) => setOffsetAX(Number(e.target.value))} />
+                Offset X: <input type="text" inputMode="numeric" value={offsetAXStr}
+                  onChange={(e) => setOffsetAXStr(e.target.value)} />
               </label>
               <label>
-                Y: <input type="number" step={1} value={offsetAY}
-                  onChange={(e) => setOffsetAY(Number(e.target.value))} />
+                Y: <input type="text" inputMode="numeric" value={offsetAYStr}
+                  onChange={(e) => setOffsetAYStr(e.target.value)} />
               </label>
             </div>
             <button onClick={() => download(joint.svgA, "finger-joint-A.svg")}>
@@ -220,12 +230,12 @@ export function FingerJointPage() {
             </svg>
             <div className="fj-offset-row">
               <label>
-                Offset X: <input type="number" step={1} value={offsetBX}
-                  onChange={(e) => setOffsetBX(Number(e.target.value))} />
+                Offset X: <input type="text" inputMode="numeric" value={offsetBXStr}
+                  onChange={(e) => setOffsetBXStr(e.target.value)} />
               </label>
               <label>
-                Y: <input type="number" step={1} value={offsetBY}
-                  onChange={(e) => setOffsetBY(Number(e.target.value))} />
+                Y: <input type="text" inputMode="numeric" value={offsetBYStr}
+                  onChange={(e) => setOffsetBYStr(e.target.value)} />
               </label>
             </div>
             <button onClick={() => download(joint.svgB, "finger-joint-B.svg")}>
