@@ -26,6 +26,14 @@ export interface FingerJointParams {
   bitDiameter: number;
   /** Extra clearance beyond bit radius (mm). Default: 0.0254 (1 thou). */
   clearance?: number;
+  /** X offset for Board A's geometry relative to anchor (mm). */
+  offsetAX?: number;
+  /** Y offset for Board A's geometry relative to anchor (mm). */
+  offsetAY?: number;
+  /** X offset for Board B's geometry relative to anchor (mm). */
+  offsetBX?: number;
+  /** Y offset for Board B's geometry relative to anchor (mm). */
+  offsetBY?: number;
 }
 
 export interface FingerJointResult {
@@ -41,6 +49,10 @@ export interface FingerJointResult {
   svgB: string;
   /** Combined SVG with both sets side by side. */
   svgBoth: string;
+  /** Number of notches in board A. */
+  notchCountA: number;
+  /** Number of notches in board B. */
+  notchCountB: number;
 }
 
 /**
@@ -51,7 +63,8 @@ export interface FingerJointResult {
  * Notches open downward (fingers point down from the board edge).
  */
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
-  const { width, thickness, fingerCount, bitDiameter, clearance = 0.0254 } = params;
+  const { width, thickness, fingerCount, bitDiameter, clearance = 0.0254,
+    offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0 } = params;
 
   if (width <= 0) throw new Error("width must be positive");
   if (thickness <= 0) throw new Error("thickness must be positive");
@@ -79,73 +92,60 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const notchesA = [buildProfile(width, thickness, notchSpansA, reliefRadius, false)];
   const notchesB = [buildProfile(width, thickness, notchSpansB, reliefRadius, true)];
 
-  const svgA = notchesToSvg(notchesA, width, thickness);
-  const svgB = notchesToSvg(notchesB, width, thickness);
+  const svgA = notchesToSvg(notchesA, width, thickness, offsetAX, offsetAY);
+  const svgB = notchesToSvg(notchesB, width, thickness, offsetBX, offsetBY);
   const svgBoth = bothToSvg(notchesA, notchesB, width, thickness);
 
-  return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth };
+  return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth, notchCountA: notchSpansA.length, notchCountB: notchSpansB.length };
 }
 
 /**
- * Build the profile: a closed exterior-cut path.
- * Fingers point DOWN from y=0 (the board edge). The notches between fingers
- * go down to y=-thickness. An extended base rectangle goes UP from y=0
- * (width+60mm wide, 30mm overhang each side, 20mm tall) — the operator cuts
- * straight across this repeatedly and ignores the upper part.
- *
- * Wound CCW (exterior cut for Shaper).
+ * Build the profile: a closed exterior-cut path in SVG y-down coordinates.
+ * Base extends UP (negative y), fingers point DOWN (positive y), board edge at y=0.
+ * No transforms needed — path data renders correctly as-is.
  */
 function buildProfile(
   width: number, thickness: number, notchSpans: Span[], reliefRadius: number,
   edgeNotches: boolean,
 ): Contour {
   const EXT = 30; // mm extension past each side
-  const BASE_HEIGHT = 20; // mm above the board edge (the cut-across zone)
+  const BASE_HEIGHT = 20; // mm above the board edge (negative y = SVG up)
 
   const points: Vec2[] = [];
   const sortedDesc = [...notchSpans].sort((a, b) => b[0] - a[0]); // right to left
 
-  // CCW winding. Fingers point down (negative y). Base box goes up (positive y).
+  // Y-down: base at -BASE_HEIGHT (top), board edge at 0, fingers at +thickness (bottom).
 
-  // Top of base
-  points.push(vec(-EXT, BASE_HEIGHT));
-  points.push(vec(width + EXT, BASE_HEIGHT));
+  // Top of base (SVG top = negative y)
+  points.push(vec(-EXT, -BASE_HEIGHT));
+  points.push(vec(width + EXT, -BASE_HEIGHT));
 
   if (edgeNotches && sortedDesc.length > 0) {
-    // Board B: notches at both edges. The extension goes straight down to
-    // -thickness on both sides — no coming back up at the board edges.
+    // Board B: extension goes straight to finger depth on both sides.
+    points.push(vec(width + EXT, thickness));
 
-    // Right side: straight down to notch floor level
-    points.push(vec(width + EXT, -thickness));
-
-    // First (rightmost) notch touches x=width: its right wall IS the extension.
-    // Start from its left edge at notch floor, then come up.
     const first = sortedDesc[0];
-    points.push(vec(first[0], -thickness));
+    points.push(vec(first[0], thickness));
     points.push(vec(first[0], 0));
 
-    // Middle notches (not the first or last) — normal up/down
     for (let i = 1; i < sortedDesc.length - 1; i++) {
       const [nLeft, nRight] = sortedDesc[i];
       points.push(vec(nRight, 0));
-      points.push(vec(nRight, -thickness));
-      points.push(vec(nLeft, -thickness));
+      points.push(vec(nRight, thickness));
+      points.push(vec(nLeft, thickness));
       points.push(vec(nLeft, 0));
     }
 
-    // Last (leftmost) notch touches x=0: its left wall IS the extension.
-    // Come down from y=0, across its floor, then straight out to the extension.
     if (sortedDesc.length > 1) {
       const last = sortedDesc[sortedDesc.length - 1];
       points.push(vec(last[1], 0));
-      points.push(vec(last[1], -thickness));
-      points.push(vec(-EXT, -thickness));
+      points.push(vec(last[1], thickness));
+      points.push(vec(-EXT, thickness));
     } else {
-      // Single notch spanning the full width — already handled above
-      points.push(vec(-EXT, -thickness));
+      points.push(vec(-EXT, thickness));
     }
   } else {
-    // Board A: no edge notches. Step in at y=0 on both sides.
+    // Board A: step in at y=0 on both sides.
     points.push(vec(width + EXT, 0));
     points.push(vec(width, 0));
 
@@ -154,8 +154,8 @@ function buildProfile(
       if (cursor > nRight + 1e-9) {
         points.push(vec(nRight, 0));
       }
-      points.push(vec(nRight, -thickness));
-      points.push(vec(nLeft, -thickness));
+      points.push(vec(nRight, thickness));
+      points.push(vec(nLeft, thickness));
       points.push(vec(nLeft, 0));
       cursor = nLeft;
     }
@@ -166,46 +166,49 @@ function buildProfile(
     points.push(vec(-EXT, 0));
   }
 
-  // Skip relief at base/extension corners — only interior notch corners need it
+  // Skip relief at base/extension corners
   const skipPoints: Vec2[] = [
-    vec(-EXT, BASE_HEIGHT), vec(width + EXT, BASE_HEIGHT),
+    vec(-EXT, -BASE_HEIGHT), vec(width + EXT, -BASE_HEIGHT),
     vec(-EXT, 0), vec(width + EXT, 0),
-    vec(-EXT, -thickness), vec(width + EXT, -thickness),
+    vec(-EXT, thickness), vec(width + EXT, thickness),
     vec(0, 0), vec(width, 0),
-    vec(0, -thickness), vec(width, -thickness),
+    vec(0, thickness), vec(width, thickness),
   ];
 
   return relieveRing(points, reliefRadius, skipPoints);
 }
 
-/** Wrap profile as a Shaper-compatible SVG with anchor triangle. */
-function notchesToSvg(notches: Contour[], width: number, height: number, _label?: string): string {
+/** Wrap profile as a Shaper-compatible SVG with anchor triangle.
+ *  offsetX/offsetY shift the geometry relative to the anchor (anchor stays at 0,0). */
+function notchesToSvg(
+  notches: Contour[], width: number, height: number,
+  offsetX = 0, offsetY = 0,
+): string {
   const EXT = 30;
   const BASE_HEIGHT = 20;
   const margin = 2;
   const svgW = width + 2 * EXT + 2 * margin;
   const svgH = height + BASE_HEIGHT + 2 * margin;
 
-  // Shaper anchor: red right triangle at the origin (0,0 in part coords).
-  // Short side along x. The anchor tells Shaper where to place the design.
-  const anchorSize = 5; // mm
-  const anchor = `    <polygon points="0,0 ${anchorSize},0 0,${anchorSize}" fill="red" stroke="none"/>`;
+  // Shaper anchor: red right triangle at origin, pointing up (-y), 2:1 aspect.
+  const ax = 5; // short side (x)
+  const ay = 10; // long side (y), pointing up
+  const anchor = `    <polygon points="0,0 ${ax},0 0,${-ay}" fill="red" stroke="none"/>`;
 
   const paths = notches.map((c) => {
     const d = pathData(c, 1, 4);
-    return `    <path fill="rgb(255,255,255)" stroke="rgb(0,0,0)" stroke-width="0.5" d="${d}"/>`;
+    return `    <path fill="rgb(0,0,0)" stroke="none" d="${d}"/>`;
   }).join("\n");
 
-  // Y-flip: part coords have y-up, SVG is y-down.
-  // Origin in part coords: (0, 0) = left edge of board, board edge line.
-  // After flip: translate so that the top of the base (y=BASE_HEIGHT in part) is at
-  // the top of the SVG, and the finger tips (y=-thickness) are at the bottom.
+  // Anchor at SVG origin. Geometry offset by (offsetX, offsetY) relative to anchor.
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${formatNum(svgW)}mm" height="${formatNum(svgH)}mm" ` +
       `viewBox="0 0 ${formatNum(svgW)} ${formatNum(svgH)}">`,
-    `  <g transform="translate(${margin + EXT},${margin + BASE_HEIGHT}) scale(1,-1)">`,
+    `  <g transform="translate(${margin + EXT},${margin + BASE_HEIGHT})">`,
+    `    <g transform="translate(${offsetX},${offsetY})">`,
     paths,
+    `    </g>`,
     anchor,
     `  </g>`,
     `</svg>`,
@@ -236,10 +239,10 @@ function bothToSvg(notchesA: Contour[], notchesB: Contour[], width: number, heig
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${formatNum(svgW)}mm" height="${formatNum(svgH)}mm" ` +
       `viewBox="0 0 ${formatNum(svgW)} ${formatNum(svgH)}">`,
-    `  <g transform="translate(${margin + EXT},${margin + BASE_HEIGHT}) scale(1,-1)">`,
+    `  <g transform="translate(${margin + EXT},${margin + BASE_HEIGHT})">`,
     pathsA,
     `  </g>`,
-    `  <g transform="translate(${margin + EXT},${margin + profileH + gap + BASE_HEIGHT}) scale(1,-1)">`,
+    `  <g transform="translate(${margin + EXT},${margin + profileH + gap + BASE_HEIGHT})">`,
     pathsB,
     `  </g>`,
     `</svg>`,

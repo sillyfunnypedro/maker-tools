@@ -897,7 +897,9 @@ export default function App() {
                 ? "Blank SketchFrame sheets to print at true size."
                 : mode === "howto"
                   ? "Drawing on paper to a true-size vector file, in five steps."
-                  : "Pick a tool to get started."}
+                  : mode === "joints"
+                    ? "CNC finger-joint profiles with corner relief."
+                    : "Pick a tool to get started."}
         </p>
       </header>
 

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "emit:print": "esbuild qr-preview/emit-print.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/emit-print.mjs --log-level=warning && node node_modules/.cache/emit-print.mjs",
-    "areas": "esbuild qr-preview/run-areas.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/run-areas.mjs --log-level=warning && node node_modules/.cache/run-areas.mjs"
+    "areas": "esbuild qr-preview/run-areas.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/run-areas.mjs --log-level=warning && node node_modules/.cache/run-areas.mjs",
+    "fingers": "esbuild qr-preview/run-fingers.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/run-fingers.mjs --log-level=warning && node node_modules/.cache/run-fingers.mjs"
   },
   "dependencies": {
     "jsqr": "^1.4.0",

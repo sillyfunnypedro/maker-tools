@@ -656,3 +656,15 @@ button.primary {
   border: 1px solid var(--border); background: var(--accent); color: #06131f;
   font-weight: 600; cursor: pointer;
 }
+
+/* Finger joint offset controls */
+.fj-offset-row {
+  display: flex; gap: 12px; align-items: center; font-size: 0.85rem; color: var(--muted);
+}
+.fj-offset-row label { display: flex; align-items: center; gap: 4px; }
+.fj-offset-row input {
+  width: 55px; padding: 4px 6px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 0.85rem; text-align: center;
+}
+.fj-offset-row input:focus { outline: none; border-color: var(--accent); }
