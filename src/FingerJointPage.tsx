@@ -117,7 +117,7 @@ export function FingerJointPage() {
         <label className="fj-field">
           <span>Board width</span>
           <input
-            type="text" inputMode="numeric" value={widthStr}
+            type="text" inputMode="decimal" value={widthStr}
             onChange={(e) => setWidthStr(e.target.value)}
           />
           <span className="fj-unit">mm</span>
@@ -125,7 +125,7 @@ export function FingerJointPage() {
         <label className="fj-field">
           <span>Thickness</span>
           <input
-            type="text" inputMode="numeric" value={thicknessStr}
+            type="text" inputMode="decimal" value={thicknessStr}
             onChange={(e) => setThicknessStr(e.target.value)}
           />
           <span className="fj-unit">mm</span>
@@ -192,11 +192,11 @@ export function FingerJointPage() {
             </svg>
             <div className="fj-offset-row">
               <label>
-                Offset X: <input type="text" inputMode="numeric" value={offsetAXStr}
+                Offset X: <input type="text" inputMode="text" value={offsetAXStr}
                   onChange={(e) => setOffsetAXStr(e.target.value)} />
               </label>
               <label>
-                Y: <input type="text" inputMode="numeric" value={offsetAYStr}
+                Y: <input type="text" inputMode="text" value={offsetAYStr}
                   onChange={(e) => setOffsetAYStr(e.target.value)} />
               </label>
             </div>
@@ -230,11 +230,11 @@ export function FingerJointPage() {
             </svg>
             <div className="fj-offset-row">
               <label>
-                Offset X: <input type="text" inputMode="numeric" value={offsetBXStr}
+                Offset X: <input type="text" inputMode="text" value={offsetBXStr}
                   onChange={(e) => setOffsetBXStr(e.target.value)} />
               </label>
               <label>
-                Y: <input type="text" inputMode="numeric" value={offsetBYStr}
+                Y: <input type="text" inputMode="text" value={offsetBYStr}
                   onChange={(e) => setOffsetBYStr(e.target.value)} />
               </label>
             </div>
