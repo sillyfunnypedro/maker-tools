@@ -73,7 +73,7 @@ export interface FingerJointResult {
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
   const { width, thicknessA, thicknessB, fingerCount, bitDiameter, clearance = 0.0254,
     offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0,
-    insertA: _insertA = false, insertB = false, reliefStyle = "long" } = params;
+    insertA = false, insertB = false, reliefStyle = "long" } = params;
 
   if (width <= 0) throw new Error("width must be positive");
   if (thicknessA <= 0 || thicknessB <= 0) throw new Error("thickness must be positive");
@@ -106,6 +106,35 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
 
   const notchesA = [buildProfile(width, thicknessB, notchSpansA, reliefRadius, edgeNotchesA, reliefStyle)];
   const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, edgeNotchesB, reliefStyle)];
+
+  // When B inserts into A, add mortise slots to A at B's finger positions.
+  // Each slot is a closed rectangle (fingerWidth × thicknessB) with relief at all corners.
+  if (insertB) {
+    for (const [left, right] of spansB) {
+      // Slot goes from board edge (y=0) down to y=thicknessB.
+      // CW winding for interior cut (material outside the path).
+      const slotPoints: Vec2[] = [
+        vec(left, 0),
+        vec(right, 0),
+        vec(right, thicknessB),
+        vec(left, thicknessB),
+      ];
+      notchesA.push(relieveRing(slotPoints, reliefRadius, undefined, reliefStyle));
+    }
+  }
+
+  // When A inserts into B, add mortise slots to B at A's finger positions.
+  if (insertA) {
+    for (const [left, right] of spansA) {
+      const slotPoints: Vec2[] = [
+        vec(left, 0),
+        vec(right, 0),
+        vec(right, thicknessA),
+        vec(left, thicknessA),
+      ];
+      notchesB.push(relieveRing(slotPoints, reliefRadius, undefined, reliefStyle));
+    }
+  }
 
   const svgA = notchesToSvg(notchesA, width, thicknessB, offsetAX, offsetAY);
   const svgB = notchesToSvg(notchesB, width, thicknessA, offsetBX, offsetBY);
@@ -215,9 +244,14 @@ function notchesToSvg(
   const ay = 10; // long side (y), pointing up
   const anchor = `    <polygon points="0,0 ${ax},0 0,${-ay}" fill="red" stroke="none"/>`;
 
-  const paths = notches.map((c) => {
+  const paths = notches.map((c, i) => {
     const d = pathData(c, 1, 4);
-    return `    <path fill="rgb(0,0,0)" stroke="none" d="${d}"/>`;
+    // First contour is the comb profile (exterior cut = black fill).
+    // Additional contours are mortise slots (interior cut = white fill + black stroke).
+    if (i === 0) {
+      return `    <path fill="rgb(0,0,0)" stroke="none" d="${d}"/>`;
+    }
+    return `    <path fill="rgb(255,255,255)" stroke="rgb(0,0,0)" stroke-width="0.3" d="${d}"/>`;
   }).join("\n");
 
   // Anchor at SVG origin. Geometry offset by (offsetX, offsetY) relative to anchor.
