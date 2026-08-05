@@ -181,14 +181,19 @@ function buildProfile(
     points.push(vec(-EXT, 0));
   }
 
-  // Skip relief at base/extension corners
+  // Skip relief at base/extension corners.
+  // When edgeNotches=true (Board B, not insert), also skip the board-edge corners.
+  // When edgeNotches=false (Board A, or insert mode), those are real inside corners.
   const skipPoints: Vec2[] = [
     vec(-EXT, -BASE_HEIGHT), vec(width + EXT, -BASE_HEIGHT),
     vec(-EXT, 0), vec(width + EXT, 0),
     vec(-EXT, thickness), vec(width + EXT, thickness),
-    vec(0, 0), vec(width, 0),
-    vec(0, thickness), vec(width, thickness),
   ];
+  if (edgeNotches) {
+    // Open edges — no relief needed at board boundary corners
+    skipPoints.push(vec(0, 0), vec(width, 0));
+    skipPoints.push(vec(0, thickness), vec(width, thickness));
+  }
 
   return relieveRing(points, reliefRadius, skipPoints, reliefStyle);
 }
