@@ -123,8 +123,8 @@ export function relieveRing(
     if (curPlan === "diagonal") {
       // Diagonal replaces the corner: arc from start (on incoming edge) to end (on outgoing edge).
       const { start, end } = diagonalReliefPoints(cur, radius);
-      // The previous iteration's trailing should have walked to `start`.
-      // Compute bow direction: into the void (right-hand normals averaged).
+      // Compute bow direction: the right-hand normals of both edges point into
+      // the VOID. The arc must bow into the MATERIAL (opposite direction), so negate.
       const rIn: Vec2 = { x: cur.dIn.y, y: -cur.dIn.x };
       const rOut: Vec2 = { x: cur.dOut.y, y: -cur.dOut.x };
       const into = vneg(vunit(vadd(rIn, rOut)));
