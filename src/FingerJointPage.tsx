@@ -31,7 +31,6 @@ export function FingerJointPage() {
   const [fingerCountStr, setFingerCountStr] = useState(() => getCookie("fingers") || "7");
   const [bitDiameter, setBitDiameter] = useState(() => getNum("bit", 6.35));
   const [reliefStyle, setReliefStyle] = useState<ReliefStyle>(() => (getCookie("relief") as ReliefStyle) || "long");
-  const [insertA, setInsertA] = useState(() => getCookie("insertA") === "true");
   const [insertB, setInsertB] = useState(() => getCookie("insertB") === "true");
   const [projectName, setProjectName] = useState(() => getCookie("name") || "");
   const [offsetAXStr, setOffsetAXStr] = useState(() => getCookie("oax") || "0");
@@ -56,7 +55,6 @@ export function FingerJointPage() {
   useEffect(() => { setCookie("fingers", fingerCountStr); }, [fingerCountStr]);
   useEffect(() => { setCookie("bit", String(bitDiameter)); }, [bitDiameter]);
   useEffect(() => { setCookie("relief", reliefStyle); }, [reliefStyle]);
-  useEffect(() => { setCookie("insertA", String(insertA)); }, [insertA]);
   useEffect(() => { setCookie("insertB", String(insertB)); }, [insertB]);
   useEffect(() => { setCookie("name", projectName); }, [projectName]);
   useEffect(() => { setCookie("oax", offsetAXStr); }, [offsetAXStr]);
@@ -70,12 +68,12 @@ export function FingerJointPage() {
     try {
       return generateFingerJoint({
         width, thicknessA, thicknessB, fingerCount: effectiveCount, bitDiameter,
-        offsetAX, offsetAY, offsetBX, offsetBY, insertA, insertB, reliefStyle,
+        offsetAX, offsetAY, offsetBX, offsetBY, insertB, reliefStyle,
       });
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
     }
-  }, [width, thicknessA, thicknessB, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, insertA, insertB, reliefStyle]);
+  }, [width, thicknessA, thicknessB, effectiveCount, bitDiameter, offsetAX, offsetAY, offsetBX, offsetBY, insertB, reliefStyle]);
 
   const download = useCallback((svg: string, filename: string) => {
     const prefix = projectName.trim().replace(/[/\\:*?"<>|]/g, "-");
@@ -175,13 +173,6 @@ export function FingerJointPage() {
             <option value="short">Short side</option>
             <option value="diagonal">45° diagonal</option>
           </select>
-        </label>
-        <label className="fj-field">
-          <span>Board A</span>
-          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <input type="checkbox" checked={insertA} onChange={(e) => setInsertA(e.target.checked)} />
-            Insert
-          </label>
         </label>
         <label className="fj-field">
           <span>Board B</span>
@@ -290,13 +281,9 @@ export function FingerJointPage() {
                   <rect key={`n${i}`} x={l} y={0} width={r - l} height={thicknessA}
                     fill="url(#hatchB)" stroke="none" />
                 ))}
-                {/* If insert mode, also hatch the edge extensions */}
-                {insertA && (
-                  <>
-                    <rect x={-30} y={0} width={30} height={thicknessA} fill="url(#hatchB)" stroke="none" />
-                    <rect x={width} y={0} width={30} height={thicknessA} fill="url(#hatchB)" stroke="none" />
-                  </>
-                )}
+                {/* Hatch the base area — only within board width */}
+                <rect x={0} y={-20} width={width} height={20}
+                  fill="url(#hatchB)" stroke="none" />
               </g>
               <polygon points={`0,${thicknessA} 5,${thicknessA} 0,${thicknessA - 10}`} fill="red" opacity={0.7} />
             </svg>

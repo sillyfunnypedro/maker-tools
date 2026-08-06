@@ -36,9 +36,7 @@ export interface FingerJointParams {
   offsetBX?: number;
   /** Y offset for Board B's geometry relative to anchor (mm). */
   offsetBY?: number;
-  /** Board A insert mode: fingers insert into middle of other board (not at edge). */
-  insertA?: boolean;
-  /** Board B insert mode: fingers insert into middle of other board (not at edge). */
+  /** Board B insert mode: fingers insert into middle of Board A (not at edge). */
   insertB?: boolean;
   /** Relief style: "long" (default), "short", or "diagonal". */
   reliefStyle?: ReliefStyle;
@@ -79,7 +77,7 @@ export interface FingerJointResult {
 export function generateFingerJoint(params: FingerJointParams): FingerJointResult {
   const { width, thicknessA, thicknessB, fingerCount, bitDiameter, clearance = 0.0254,
     offsetAX = 0, offsetAY = 0, offsetBX = 0, offsetBY = 0,
-    insertA = false, insertB = false, reliefStyle = "long" } = params;
+    insertB = false, reliefStyle = "long" } = params;
 
   if (width <= 0) throw new Error("width must be positive");
   if (thicknessA <= 0 || thicknessB <= 0) throw new Error("thickness must be positive");
@@ -114,19 +112,6 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const notchesB = [buildProfile(width, thicknessA, notchSpansB, reliefRadius, edgeNotchesB, reliefStyle)];
 
   // When B inserts into A, the profile already extends at depth — no separate slots needed.
-
-  // When A inserts into B, add mortise slots to B at A's finger positions.
-  if (insertA) {
-    for (const [left, right] of spansA) {
-      const slotPoints: Vec2[] = [
-        vec(left, 0),
-        vec(right, 0),
-        vec(right, thicknessA),
-        vec(left, thicknessA),
-      ];
-      notchesB.push(relieveRing(slotPoints, reliefRadius, undefined, reliefStyle));
-    }
-  }
 
   const svgA = notchesToSvg(notchesA, width, thicknessB, offsetAX, offsetAY);
   const svgB = notchesToSvg(notchesB, width, thicknessA, offsetBX, offsetBY);
