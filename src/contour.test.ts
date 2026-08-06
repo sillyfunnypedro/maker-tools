@@ -10,16 +10,7 @@ function filledRect(w: number, h: number, x0: number, y0: number, x1: number, y1
   return mask;
 }
 
-/** Create RGBA from a binary mask (black=foreground, white=background). */
-function maskToRgba(mask: Uint8Array, w: number, h: number): Uint8ClampedArray {
-  const rgba = new Uint8ClampedArray(w * h * 4);
-  for (let i = 0; i < w * h; i++) {
-    const v = mask[i] ? 0 : 255;
-    rgba[i * 4] = rgba[i * 4 + 1] = rgba[i * 4 + 2] = v;
-    rgba[i * 4 + 3] = 255;
-  }
-  return rgba;
-}
+/** Create RGBA from a binary mask (for future use). */
 
 describe("traceContours", () => {
   it("finds one contour for a filled square", () => {

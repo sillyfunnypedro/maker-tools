@@ -118,7 +118,6 @@ describe("relieveRing — arc bows into material", () => {
   // should be further from the rectangle's center than the corner.
   const notch = [vec(0, 20), vec(30, 20), vec(30, 0), vec(0, 0)];
   const r = 3.2;
-  const center = vec(15, 10); // center of rectangle (the void)
 
   const styles: ReliefStyle[] = ["long", "short", "diagonal"];
   for (const style of styles) {
