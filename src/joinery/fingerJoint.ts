@@ -61,6 +61,12 @@ export interface FingerJointResult {
   notchCountA: number;
   /** Number of notches in board B. */
   notchCountB: number;
+  /** Notch span positions for Board A (for preview hatching). */
+  notchSpansA: Span[];
+  /** Notch span positions for Board B (for preview hatching). */
+  notchSpansB: Span[];
+  /** B's finger positions (for insert mode hatching). */
+  spansB: Span[];
 }
 
 /**
@@ -126,7 +132,9 @@ export function generateFingerJoint(params: FingerJointParams): FingerJointResul
   const svgB = notchesToSvg(notchesB, width, thicknessA, offsetBX, offsetBY);
   const svgBoth = bothToSvg(notchesA, notchesB, width, Math.max(thicknessA, thicknessB));
 
-  return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth, notchCountA: notchSpansA.length, notchCountB: notchSpansB.length };
+  return { notchesA, notchesB, reliefRadius, svgA, svgB, svgBoth,
+    notchCountA: notchSpansA.length, notchCountB: notchSpansB.length,
+    notchSpansA, notchSpansB, spansB };
 }
 
 /**

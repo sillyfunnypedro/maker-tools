@@ -213,15 +213,28 @@ export function FingerJointPage() {
               <line x1={0} y1={vbY} x2={0} y2={vbY + vbHA} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <circle cx={0} cy={0} r={1} fill="green" />
               <g transform={`translate(${offsetAX},${offsetAY})`}>
+                {/* Profile outline only (no fill) */}
                 {joint.notchesA.map((c, i) => (
                   <path
                     key={i}
-                    fill="url(#hatchA)"
+                    fill="none"
                     stroke="#cc3333"
                     strokeWidth={0.3}
                     d={pathData(c)}
                   />
                 ))}
+                {/* Hatch only the notch areas */}
+                {joint.notchSpansA.map(([l, r], i) => (
+                  <rect key={`n${i}`} x={l} y={0} width={r - l} height={thicknessB}
+                    fill="url(#hatchA)" stroke="none" />
+                ))}
+                {/* If insert mode, also hatch the edge extensions */}
+                {insertB && (
+                  <>
+                    <rect x={-30} y={0} width={30} height={thicknessB} fill="url(#hatchA)" stroke="none" />
+                    <rect x={width} y={0} width={30} height={thicknessB} fill="url(#hatchA)" stroke="none" />
+                  </>
+                )}
               </g>
               <polygon points={`0,${thicknessB} 5,${thicknessB} 0,${thicknessB - 10}`} fill="red" opacity={0.7} />
             </svg>
@@ -256,15 +269,28 @@ export function FingerJointPage() {
               <line x1={0} y1={vbY} x2={0} y2={vbY + vbHB} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <circle cx={0} cy={0} r={1} fill="green" />
               <g transform={`translate(${offsetBX},${offsetBY})`}>
+                {/* Profile outline only */}
                 {joint.notchesB.map((c, i) => (
                   <path
                     key={i}
-                    fill="url(#hatchB)"
+                    fill="none"
                     stroke="#cc3333"
                     strokeWidth={0.3}
                     d={pathData(c)}
                   />
                 ))}
+                {/* Hatch only the notch areas */}
+                {joint.notchSpansB.map(([l, r], i) => (
+                  <rect key={`n${i}`} x={l} y={0} width={r - l} height={thicknessA}
+                    fill="url(#hatchB)" stroke="none" />
+                ))}
+                {/* If insert mode, also hatch the edge extensions */}
+                {insertA && (
+                  <>
+                    <rect x={-30} y={0} width={30} height={thicknessA} fill="url(#hatchB)" stroke="none" />
+                    <rect x={width} y={0} width={30} height={thicknessA} fill="url(#hatchB)" stroke="none" />
+                  </>
+                )}
               </g>
               <polygon points={`0,${thicknessA} 5,${thicknessA} 0,${thicknessA - 10}`} fill="red" opacity={0.7} />
             </svg>
