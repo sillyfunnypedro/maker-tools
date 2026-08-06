@@ -223,8 +223,8 @@ export function FingerJointPage() {
                     d={pathData(c)}
                   />
                 ))}
-                {/* Hatch the base area (above board edge, the cut-across zone) — only within board width */}
-                <rect x={0} y={-20} width={width} height={20}
+                {/* Hatch the base area — when insert, include side extensions */}
+                <rect x={insertB ? -30 : 0} y={-20} width={insertB ? width + 60 : width} height={20}
                   fill="url(#hatchA)" stroke="none" />
                 {/* Hatch only the notch areas */}
                 {joint.notchSpansA.map(([l, r], i) => (
