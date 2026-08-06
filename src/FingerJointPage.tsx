@@ -203,6 +203,11 @@ export function FingerJointPage() {
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
+              <defs>
+                <pattern id="hatchA" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="3" stroke="rgba(220,50,50,0.5)" strokeWidth="0.5" />
+                </pattern>
+              </defs>
               {/* Grid */}
               <line x1={vbX} y1={0} x2={vbX + vbW} y2={0} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <line x1={0} y1={vbY} x2={0} y2={vbY + vbHA} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
@@ -211,8 +216,8 @@ export function FingerJointPage() {
                 {joint.notchesA.map((c, i) => (
                   <path
                     key={i}
-                    fill="rgba(100,160,255,0.2)"
-                    stroke="#1a5cff"
+                    fill="url(#hatchA)"
+                    stroke="#cc3333"
                     strokeWidth={0.3}
                     d={pathData(c)}
                   />
@@ -242,6 +247,11 @@ export function FingerJointPage() {
               className="fj-svg"
               preserveAspectRatio="xMidYMid meet"
             >
+              <defs>
+                <pattern id="hatchB" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="3" stroke="rgba(220,50,50,0.5)" strokeWidth="0.5" />
+                </pattern>
+              </defs>
               <line x1={vbX} y1={0} x2={vbX + vbW} y2={0} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <line x1={0} y1={vbY} x2={0} y2={vbY + vbHB} stroke="#0a0" strokeWidth={0.2} strokeDasharray="2,2" />
               <circle cx={0} cy={0} r={1} fill="green" />
@@ -249,8 +259,8 @@ export function FingerJointPage() {
                 {joint.notchesB.map((c, i) => (
                   <path
                     key={i}
-                    fill="rgba(255,160,100,0.2)"
-                    stroke="#cc5500"
+                    fill="url(#hatchB)"
+                    stroke="#cc3333"
                     strokeWidth={0.3}
                     d={pathData(c)}
                   />
