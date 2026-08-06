@@ -188,7 +188,7 @@ export function FingerJointPage() {
       {joint && (
         <div className="fj-preview">
           <div className="fj-profile">
-            <h3>Board A — {effectiveCount - joint.notchCountA} fingers</h3>
+            <h3>Board A — {joint.notchCountA} fingers</h3>
             <svg
               viewBox={`${vbX} ${vbY} ${vbW} ${vbHA}`}
               className="fj-svg"
@@ -248,7 +248,7 @@ export function FingerJointPage() {
           </div>
 
           <div className="fj-profile">
-            <h3>Board B — {effectiveCount - joint.notchCountB} fingers</h3>
+            <h3>Board B — {joint.notchCountB} fingers</h3>
             <svg
               viewBox={`${vbX} ${vbY} ${vbW} ${vbHB}`}
               className="fj-svg"
