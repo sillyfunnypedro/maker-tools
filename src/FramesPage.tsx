@@ -130,11 +130,11 @@ export function FramesPage() {
                     </small>
                   </div>
                   <div className="frame-actions">
-                    <a className="frame-dl" href={href(spec.id)} download>
+                    <a className="frame-dl" href={href(spec.id)} download={`qrframe-${spec.id}-blank.pdf`}>
                       Download PDF
                     </a>
                     {TILED_INFO[spec.id] && (
-                      <a className="frame-dl frame-dl-tiled" href={tiledHref(spec.id)} download>
+                      <a className="frame-dl frame-dl-tiled" href={tiledHref(spec.id)} download={`qrframe-${spec.id}-tiled.pdf`}>
                         Letter pages ({TILED_INFO[spec.id].pages} sheets)
                       </a>
                     )}
