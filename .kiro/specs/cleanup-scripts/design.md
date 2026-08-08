@@ -1,25 +1,21 @@
 # Design: Cleanup Scripts & Pipeline Unification
 
-## Part A: Script Cleanup
+## Part A: Script Documentation & Fixes
 
-### Delete
-- `qr-preview/debug-profile.ts`
-- `qr-preview/debug-relief.ts`
-- `qr-preview/debug-relief2.ts`
-- `qr-preview/dump-points.ts`
-- `qr-preview/dump-svg.ts`
-- `qr-preview/test-contour.ts`
-- `qr-preview/test-insert.ts`
-- `qr-preview/test-insert-3.ts`
-- `qr-preview/test-relief-styles.ts`
-
-### Keep
+### Maintained pipelines
 - `qr-preview/emit-print.ts` — frame PDF generation
 - `qr-preview/run-areas.ts` — offline areas pipeline
 - `qr-preview/run-fingers.ts` — offline finger joint pipeline
 
+### One-off debug scripts (keep, fix if broken)
+- `debug-profile.ts`, `debug-relief.ts`, `debug-relief2.ts` — relief debugging
+- `dump-points.ts`, `dump-svg.ts` — geometry inspection
+- `test-contour.ts` — contour tracer debugging
+- `test-insert.ts`, `test-insert-3.ts` — insert mode debugging
+- `test-relief-styles.ts` — relief style comparison
+
 ### Add
-- `qr-preview/README.md` — documents the three pipelines
+- `qr-preview/README.md` — explains which are maintained vs one-off, how to run each
 
 ## Part B: Pipeline Unification
 
