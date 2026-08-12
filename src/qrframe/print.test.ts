@@ -108,7 +108,9 @@ describe("page label", () => {
     const without = printPageSvg(std, { sample: false }).svg;
     expect(withLabel).toContain("<text");
     expect(withLabel).toContain("Jamie · example.com");
-    expect(without).not.toContain("<text");
+    // No user-supplied label → no label <text> in the top margin (origin annotation is separate)
+    expect(without).not.toMatch(/<text[^>]*>[^o]/); // no text other than "origin"
+    expect(without).toContain(">origin</text>");
     // Everything else about the page must stay identical (ignore incidental
     // whitespace left behind by stripping the <text> line).
     const norm = (s: string) => s.replace(/\s+/g, " ").trim();

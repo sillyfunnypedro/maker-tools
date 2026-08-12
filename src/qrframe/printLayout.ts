@@ -100,6 +100,11 @@ export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLa
       `font-family="sans-serif" font-size="${fontSize.toFixed(2)}" text-anchor="middle" ` +
       `dominant-baseline="middle" fill="black">${escapeXml(label)}</text>\n`
     : "";
+  // "origin" annotation in the bottom-left of the frame (blank sheets only)
+  const originAnnotation = !opts.sample && dy >= 4
+    ? `  <text x="${(dx + 2).toFixed(2)}" y="${(dy + outerH(spec) - 1.5).toFixed(2)}" ` +
+      `font-family="sans-serif" font-size="2.5" fill="black">origin</text>\n`
+    : "";
   const svg =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" ` +
@@ -108,7 +113,9 @@ export function printPageSvg(spec: QrFrameSpec, opts: FrameOptions = {}): PageLa
     labelSvg +
     `  <g transform="translate(${dx.toFixed(3)},${dy.toFixed(3)})">\n` +
     `    ${frameMarks(spec, opts)}\n` +
-    `  </g>\n</svg>\n`;
+    `  </g>\n` +
+    originAnnotation +
+    `</svg>\n`;
   return { svg, pageW, pageH, fit, dx, dy, marginMm: Math.min(dx, dy) };
 }
 
