@@ -23,6 +23,7 @@ import type {
 } from "./worker";
 import { renderStrokeGroups, strokesToSvg, type StrokeGroup } from "./svg";
 import { rectifyOpening, flattenIllumination, otsuThreshold } from "./rectify";
+import { cacheImage, getCachedImage } from "./imageCache";
 import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
@@ -383,6 +384,8 @@ export default function App() {
       }
       fileRef.current = file;
       setFileName(file.name);
+      // Cache the image for this tool so it persists across reloads.
+      void cacheImage(modeRef.current === "frame" ? "frame" : "glass", file);
       await decodeAndRun(file);
     },
     [decodeAndRun],
@@ -606,7 +609,9 @@ export default function App() {
     if (!cncView) return null;
     const kept = cncView.strokes.filter((_, i) => !excludedStrokes.has(i));
     return strokesToSvg(cncView.viewW, cncView.viewH, kept, undefined,
-      detectMode === "areas" ? { separatePaths: true, filled: true } : undefined);
+      detectMode === "areas"
+        ? { separatePaths: true, filled: true, origin: true }
+        : { origin: true });
   }, [cncView, excludedStrokes, detectMode]);
 
   const saveCncSvg = useCallback(() => {
@@ -720,6 +725,12 @@ export default function App() {
     setFrameZoom(1);
     setFramePan({ x: 0, y: 0 });
     setMode(t);
+    // Restore cached image for this tool if available.
+    if (t === "frame" || t === "glass") {
+      void getCachedImage(t).then((cached) => {
+        if (cached && !fileRef.current) void loadFile(cached);
+      });
+    }
   };
   const goHome = () => {
     setMode("home");
