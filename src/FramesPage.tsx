@@ -36,8 +36,9 @@ const GROUPS: { heading: string; ids: string[] }[] = [
 ];
 
 /** Files live in public/frames/, and `base: "./"` keeps the paths relative. */
-const href = (id: string) => `./frames/qrframe-${id}-blank.pdf`;
-const tiledHref = (id: string) => `./frames/qrframe-${id}-tiled.pdf`;
+const base = import.meta.env.BASE_URL;
+const href = (id: string) => `${base}frames/qrframe-${id}-blank.pdf`;
+const tiledHref = (id: string) => `${base}frames/qrframe-${id}-tiled.pdf`;
 
 /** Pre-compute which specs have tiled versions (too large for Letter). */
 const TILED_INFO: Record<string, { rows: number; cols: number; pages: number }> = {};
