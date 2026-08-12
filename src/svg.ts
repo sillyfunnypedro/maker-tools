@@ -557,11 +557,7 @@ export function strokesToSvg(
 ): string {
   const { separatePaths = false, filled = false, origin = false } = opts;
   const originMarker = origin
-    ? `\n  <polygon points="0,${f(viewH)} 3,${f(viewH)} 0,${f(viewH - 6)}" fill="red" stroke="none"/>` +
-      `\n  <text x="1" y="3" font-family="sans-serif" font-size="2" fill="#666">[0,0]</text>` +
-      `\n  <text x="${f(viewW - 12)}" y="3" font-family="sans-serif" font-size="2" fill="#666">[${f(viewW)},0]</text>` +
-      `\n  <text x="1" y="${f(viewH - 1)}" font-family="sans-serif" font-size="2" fill="#666">[0,${f(viewH)}]</text>` +
-      `\n  <text x="${f(viewW - 16)}" y="${f(viewH - 1)}" font-family="sans-serif" font-size="2" fill="#666">[${f(viewW)},${f(viewH)}]</text>`
+    ? `\n  <polygon points="0,${f(viewH)} 3,${f(viewH)} 0,${f(viewH - 6)}" fill="red" stroke="none"/>`
     : "";
   if (separatePaths) {
     const fill = filled ? "#000000" : "none";
