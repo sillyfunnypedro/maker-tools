@@ -496,7 +496,17 @@ export function renderStrokeGroups(
   simplifyMm = 0.1, minLenMm = 2, minSpanMm = 1.5,
   rotateDeg = 0, zoom = 1, panXMm = 0, panYMm = 0,
 ): { strokes: string[][]; viewW: number; viewH: number } {
-  const tol = Math.max(simplifyMm, mmPerPxHint);
+  // A straight or gently-curved line closest to 45 degrees is the worst case for
+  // pixel-thinning staircase noise: its raster skeleton zigzags by close to a
+  // full pixel off the true path, while a near-horizontal/vertical line barely
+  // deviates at all. One pixel of RDP tolerance (mmPerPxHint) absorbs the easy
+  // case but not the 45-degree one — confirmed against a real photographed
+  // circle, where the segments near its 45-degree points kept a cluster of
+  // barely-different points that the corner detector then read as a string of
+  // real corners, leaving a visibly jagged notch on an otherwise smooth curve.
+  // 1.5x was the smallest margin that fully cleared it without rounding off
+  // genuine corners (still exact to a fraction of a pixel either way).
+  const tol = Math.max(simplifyMm, mmPerPxHint * 1.5);
 
   // Straightening turns about the centre of the opening; zoom keeps a 1/zoom
   // window, and the pan offset says where that window sits. The exported page is

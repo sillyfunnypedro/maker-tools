@@ -6,9 +6,10 @@
 // between two long ones grew control arms many times its own length, so the
 // curve looped and swung a millimetre wide of its own nodes.
 import { describe, expect, it } from "vitest";
-import { buildCncStrokedSvg, traceStrokeGroups, renderStrokeGroups, strokesToSvg } from "./svg";
+import { buildCncStrokedSvg, traceStrokeGroups, renderStrokeGroups, strokesToSvg, type StrokeGroup } from "./svg";
 import { DEFAULT_PARAMS, computeMasks } from "./processing";
 import type { Mat3 } from "./qrframe/homography";
+import { REAL_CIRCLE_TRACE, REAL_CIRCLE_TRACE_MM_PER_PX } from "./testdata/real-circle-trace";
 
 const PPMM = 1400 / 168; // the app's standard-resolution scale: ~8.33 px/mm
 const pxToMm: Mat3 = [[1 / PPMM, 0, 0], [0, 1 / PPMM, 0], [0, 0, 1]];
@@ -579,5 +580,49 @@ describe("CNC centerline export", () => {
     const h = Math.max(...all.map((p) => p[1])) - Math.min(...all.map((p) => p[1]));
     expect(w).toBeCloseTo(60, 0);
     expect(h).toBeCloseTo(60, 0);
+  });
+});
+
+describe("real-world jaggedness (RDP tolerance vs. pixel-thinning noise)", () => {
+  // How many times the curve's turn direction (sign of the cross product of
+  // consecutive tangents) flips. A genuinely convex arc — like a hand-drawn
+  // circle really is — should never flip; a "jag" is exactly a brief, spurious
+  // reversal of curvature sign that a real corner would never produce either
+  // (a corner turns once, hard, and stays turned).
+  function curvatureSignFlips(segs: Cubic[], per = 15, deadzoneDeg = 2): number {
+    const pts = flatten(segs, per);
+    const n = pts.length;
+    const signs: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts[(i - 1 + n) % n], b = pts[i], c = pts[(i + 1) % n];
+      const ux = b[0] - a[0], uy = b[1] - a[1], vx = c[0] - b[0], vy = c[1] - b[1];
+      const cross = ux * vy - uy * vx;
+      const mag = Math.hypot(ux, uy) * Math.hypot(vx, vy) || 1e-9;
+      const sinDeg = (Math.asin(Math.max(-1, Math.min(1, cross / mag))) * 180) / Math.PI;
+      signs.push(Math.abs(sinDeg) < deadzoneDeg ? 0 : Math.sign(sinDeg));
+    }
+    let flips = 0, last = 0;
+    for (const s of signs) {
+      if (s === 0) continue;
+      if (last !== 0 && s !== last) flips++;
+      last = s;
+    }
+    return flips;
+  }
+
+  it("stays convex end to end, unlike at the old (tighter) RDP tolerance", () => {
+    const group: StrokeGroup = { pts: REAL_CIRCLE_TRACE, closed: true };
+    const { strokes, viewW, viewH } = renderStrokeGroups([group], REAL_CIRCLE_TRACE_MM_PER_PX, 150, 168);
+    const segs = subpaths(strokesToSvg(viewW, viewH, strokes))[0];
+    expect(curvatureSignFlips(segs)).toBe(0);
+
+    // The old tolerance (exactly one pixel, no safety margin against 45-degree
+    // staircase noise) reproduces the jag on this exact real-world data —
+    // pinning down what actually broke. renderStrokeGroups always applies its
+    // own 1.5x margin internally now, so dividing the hint by it here recovers
+    // the un-margined tolerance the old code used.
+    const old = renderStrokeGroups([group], REAL_CIRCLE_TRACE_MM_PER_PX / 1.5, 150, 168);
+    const oldSegs = subpaths(strokesToSvg(old.viewW, old.viewH, old.strokes))[0];
+    expect(curvatureSignFlips(oldSegs)).toBeGreaterThan(0);
   });
 });
