@@ -657,6 +657,37 @@ button.primary {
   font-weight: 600; cursor: pointer;
 }
 
+/* Test fixture viewer */
+.test-viewer { display: flex; flex-direction: column; gap: 28px; max-width: 960px; margin: 0 auto; }
+.test-viewer code {
+  background: #131a24; border: 1px solid #2a3442; border-radius: 4px;
+  padding: 1px 5px; font-size: 0.9em;
+}
+.test-viewer-section h2 { font-size: 1.05rem; margin: 0 0 10px; color: var(--text); }
+.test-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.test-card {
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid #2a3442; border-radius: 10px; padding: 10px;
+  background: #131a24;
+}
+.test-card-images {
+  position: relative; border-radius: 6px; overflow: hidden;
+  background: #fff; aspect-ratio: 150 / 168;
+}
+.test-card-images img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+}
+.test-card-trace { mix-blend-mode: multiply; }
+.test-card-meta { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.test-status { font-size: 0.8rem; }
+.test-status.pending { color: #9ca3af; }
+.test-status.pass { color: #6ee7b7; }
+.test-status.fail { color: #fca5a5; }
+.test-real-photo { max-width: 100%; border-radius: 8px; display: block; }
+
 /* Finger joint offset controls */
 .fj-offset-row {
   display: flex; gap: 12px; align-items: center; font-size: 0.85rem; color: var(--muted);

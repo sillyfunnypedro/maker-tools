@@ -1,7 +1,7 @@
 // Start screen: pick a tool. The two tools are separate workflows that share the
 // backend processing modules (processing / svg / frameDetect / rectify / worker).
 
-export type Tool = "glass" | "frame" | "frames" | "howto" | "joints";
+export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests";
 
 export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
   return (
@@ -44,6 +44,14 @@ export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
         <small>
           Generate complementary finger-joint profiles for a CNC router, with
           corner relief for a round bit.
+        </small>
+      </button>
+      <button className="start-card" onClick={() => onPick("tests")}>
+        <span className="start-emoji" aria-hidden>🧪</span>
+        <strong>Test Fixtures</strong>
+        <small>
+          Browse the sample images the automated test suite checks the line
+          tracer against, with live pass/fail results.
         </small>
       </button>
     </div>
