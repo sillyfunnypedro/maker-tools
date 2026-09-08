@@ -663,7 +663,13 @@ button.primary {
   background: #131a24; border: 1px solid #2a3442; border-radius: 4px;
   padding: 1px 5px; font-size: 0.9em;
 }
+.test-viewer-group {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); margin: 8px 0 -6px; border-top: 1px solid #2a3442; padding-top: 20px;
+}
+.test-viewer-group:first-of-type { border-top: none; padding-top: 0; }
 .test-viewer-section h2 { font-size: 1.05rem; margin: 0 0 10px; color: var(--text); }
+.test-viewer-section h3 { font-size: 0.95rem; margin: 0 0 10px; color: var(--text); }
 .test-grid {
   display: grid; gap: 14px;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

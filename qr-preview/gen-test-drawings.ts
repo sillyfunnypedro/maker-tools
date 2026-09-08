@@ -14,46 +14,13 @@
 // staircase noise actually appear, the same way it does in a real photo.
 //
 // Usage: npm run gen:drawings
-import { writeFileSync, mkdirSync } from "node:fs";
-import { PNG } from "pngjs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { distToSegment, gaussianSource, grayToRgba, mulberry32, writePng, type Pt } from "./genFixtureUtils";
 
 const OPEN_W = 150, OPEN_H = 168; // mm — matches svg.test.ts's OPEN_W/OPEN_H
 const PPMM = 1400 / 168;          // matches the app's standard-resolution scale
 const W = Math.round(OPEN_W * PPMM), H = Math.round(OPEN_H * PPMM);
 const OUT_DIR = "src/testdata/drawings";
-
-type Pt = [number, number];
-
-// --- Deterministic PRNG (mulberry32) + Gaussian noise via Box-Muller -------
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function gaussianSource(rand: () => number) {
-  let spare: number | null = null;
-  return (): number => {
-    if (spare !== null) { const v = spare; spare = null; return v; }
-    let u = 0, v = 0;
-    while (u === 0) u = rand();
-    while (v === 0) v = rand();
-    const mag = Math.sqrt(-2 * Math.log(u));
-    spare = mag * Math.sin(2 * Math.PI * v);
-    return mag * Math.cos(2 * Math.PI * v);
-  };
-}
-
-// --- Distance fields, in mm, from a pixel to a shape's centerline ----------
-function distToSegment(p: Pt, a: Pt, b: Pt): number {
-  const dx = b[0] - a[0], dy = b[1] - a[1];
-  const L2 = dx * dx + dy * dy || 1e-9;
-  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2));
-  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-}
 
 interface Shape {
   name: string;
@@ -122,21 +89,6 @@ function render(shape: Shape, thicknessMm: number, seed: number): Uint8Array {
   return gray;
 }
 
-function grayToRgba(gray: Uint8Array): Uint8ClampedArray {
-  const out = new Uint8ClampedArray(gray.length * 4);
-  for (let i = 0; i < gray.length; i++) {
-    const g = gray[i];
-    out[i * 4] = g; out[i * 4 + 1] = g; out[i * 4 + 2] = g; out[i * 4 + 3] = 255;
-  }
-  return out;
-}
-
-function writePng(path: string, data: Uint8ClampedArray) {
-  const png = new PNG({ width: W, height: H });
-  for (let i = 0; i < data.length; i++) png.data[i] = data[i];
-  writeFileSync(path, PNG.sync.write(png));
-}
-
 mkdirSync(OUT_DIR, { recursive: true });
 const manifest: { file: string; shape: string; thicknessMm: number; widthMm: number; heightMm: number; ppmm: number }[] = [];
 let seed = 1;
@@ -144,7 +96,7 @@ for (const shape of shapes) {
   for (const thicknessMm of THICKNESSES_MM) {
     const file = `${shape.name}-${thicknessMm}mm.png`;
     const gray = render(shape, thicknessMm, seed++);
-    writePng(`${OUT_DIR}/${file}`, grayToRgba(gray));
+    writePng(`${OUT_DIR}/${file}`, W, H, grayToRgba(gray));
     manifest.push({ file, shape: shape.name, thicknessMm, widthMm: OPEN_W, heightMm: OPEN_H, ppmm: PPMM });
     console.log(`  ${OUT_DIR}/${file}`);
   }

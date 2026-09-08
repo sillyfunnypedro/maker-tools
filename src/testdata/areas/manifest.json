@@ -1,0 +1,98 @@
+[
+  {
+    "file": "disk-5mm.png",
+    "shape": "disk",
+    "param": 5,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "disk-10mm.png",
+    "shape": "disk",
+    "param": 10,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "disk-20mm.png",
+    "shape": "disk",
+    "param": 20,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "disk-35mm.png",
+    "shape": "disk",
+    "param": 35,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "star-5pt.png",
+    "shape": "star",
+    "param": 5,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "star-6pt.png",
+    "shape": "star",
+    "param": 6,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "star-8pt.png",
+    "shape": "star",
+    "param": 8,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "star-12pt.png",
+    "shape": "star",
+    "param": 12,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "twoblobs-4mm-gap.png",
+    "shape": "twoblobs",
+    "param": 4,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "twoblobs-1mm-gap.png",
+    "shape": "twoblobs",
+    "param": 1,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "twoblobs-0.3mm-gap.png",
+    "shape": "twoblobs",
+    "param": 0.3,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "twoblobs-0.15mm-gap.png",
+    "shape": "twoblobs",
+    "param": 0.15,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  }
+]
