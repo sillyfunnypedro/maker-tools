@@ -1,0 +1,98 @@
+[
+  {
+    "file": "circle-0.5mm.png",
+    "shape": "circle",
+    "thicknessMm": 0.5,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "circle-1mm.png",
+    "shape": "circle",
+    "thicknessMm": 1,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "circle-2mm.png",
+    "shape": "circle",
+    "thicknessMm": 2,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "circle-3mm.png",
+    "shape": "circle",
+    "thicknessMm": 3,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "diagonal45-0.5mm.png",
+    "shape": "diagonal45",
+    "thicknessMm": 0.5,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "diagonal45-1mm.png",
+    "shape": "diagonal45",
+    "thicknessMm": 1,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "diagonal45-2mm.png",
+    "shape": "diagonal45",
+    "thicknessMm": 2,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "diagonal45-3mm.png",
+    "shape": "diagonal45",
+    "thicknessMm": 3,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "square-0.5mm.png",
+    "shape": "square",
+    "thicknessMm": 0.5,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "square-1mm.png",
+    "shape": "square",
+    "thicknessMm": 1,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "square-2mm.png",
+    "shape": "square",
+    "thicknessMm": 2,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  },
+  {
+    "file": "square-3mm.png",
+    "shape": "square",
+    "thicknessMm": 3,
+    "widthMm": 150,
+    "heightMm": 168,
+    "ppmm": 8.333333333333334
+  }
+]
