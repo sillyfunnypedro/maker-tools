@@ -71,6 +71,38 @@ export function formatNum(value: number, places = 5): string {
   return text;
 }
 
+/**
+ * Flatten a contour into a closed polyline (mm), for geometric checks like
+ * self-intersection that need actual points rather than line/arc segments.
+ *
+ * Every relief arc this codebase produces (see relief.ts) has its two
+ * endpoints diametrically opposite — its chord is always exactly one edge
+ * offset back plus one forward, each `radius` long, along two perpendicular
+ * directions, so the chord length is always exactly `2 * radius` — which means
+ * every arc is an exact semicircle. That makes the centre just the segment's
+ * own midpoint, without needing the general SVG ellipse-arc parameterisation.
+ */
+export function flattenContour(c: Contour, arcSteps = 16): Vec2[] {
+  const pts: Vec2[] = [c.start];
+  let cur = c.start;
+  for (const seg of c.segs) {
+    if (seg.radius == null) {
+      pts.push(seg.end);
+    } else {
+      const cx = (cur.x + seg.end.x) / 2;
+      const cy = (cur.y + seg.end.y) / 2;
+      const a0 = Math.atan2(cur.y - cy, cur.x - cx);
+      const dir = seg.ccw ? 1 : -1;
+      for (let i = 1; i <= arcSteps; i++) {
+        const a = a0 + (dir * Math.PI * i) / arcSteps;
+        pts.push(vec(cx + seg.radius * Math.cos(a), cy + seg.radius * Math.sin(a)));
+      }
+    }
+    cur = seg.end;
+  }
+  return pts;
+}
+
 /** Remove collinear and duplicate vertices from a closed ring. */
 export function dedupeCollinear(points: Vec2[], tol = 1e-7): Vec2[] {
   const pts = points.filter((p, i) => !vclose(p, points[(i - 1 + points.length) % points.length], tol));

@@ -2,12 +2,15 @@
 // the real mask + trace pipeline (the same code path App.tsx uses) so what's
 // shown here is what the tests actually check, not a static screenshot that can
 // drift out of sync with them.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_PARAMS, computeMasks } from "./processing";
 import { buildCncStrokedSvg, renderStrokeGroups, strokesToSvg, traceAreaGroups } from "./svg";
 import { removeBorderRegions, smoothContour, thresholdMask, traceContours } from "./contour";
 import type { Mat3 } from "./qrframe/homography";
-import { subpaths, flatten, selfCrossings, bbox, curvatureSignFlips } from "./testUtils/svgGeometry";
+import { subpaths, flatten, selfCrossings, bbox, curvatureSignFlips, pointsSelfCrossings } from "./testUtils/svgGeometry";
+import { generateFingerJoint } from "./joinery/fingerJoint";
+import { flattenContour } from "./joinery/geom";
+import { FIXTURE_MATRIX } from "./joinery/testMatrix";
 import lineManifest from "./testdata/drawings/manifest.json";
 import areaManifest from "./testdata/areas/manifest.json";
 
@@ -145,6 +148,29 @@ function traceAreaEntry(entry: AreaEntry): Promise<Verdict> {
   });
 }
 
+/** Mirrors the checks in src/joinery/fingerJointFixtures.test.ts. No photo
+ *  pipeline involved — finger joints are pure parametric geometry, generated
+ *  synchronously, so unlike the sections above this one needs no loading state. */
+function checkFingerJointEntry(entry: (typeof FIXTURE_MATRIX)[number]): { svgUrl: string; ok: boolean; detail: string } {
+  try {
+    const r = generateFingerJoint(entry.params);
+    const flatA = flattenContour(r.notchesA[0]).map((v) => [v.x, v.y] as [number, number]);
+    const flatB = flattenContour(r.notchesB[0]).map((v) => [v.x, v.y] as [number, number]);
+    const crossA = pointsSelfCrossings(flatA);
+    const crossB = pointsSelfCrossings(flatB);
+    const svgUrl = `data:image/svg+xml;utf8,${encodeURIComponent(r.svgBoth)}`;
+    if (crossA > 0 || crossB > 0)
+      return { svgUrl, ok: false, detail: `self-crossing toolpath (A:${crossA} B:${crossB})` };
+    const maxYA = Math.max(...flatA.map(([, y]) => y));
+    const maxYB = Math.max(...flatB.map(([, y]) => y));
+    if (Math.abs(maxYA - entry.params.thicknessB) > 1e-6 || Math.abs(maxYB - entry.params.thicknessA) > 1e-6)
+      return { svgUrl, ok: false, detail: "notch depth doesn't match the mating board's thickness" };
+    return { svgUrl, ok: true, detail: `${r.notchCountA}+${r.notchCountB} notches, relief r=${r.reliefRadius.toFixed(2)}mm` };
+  } catch (e) {
+    return { svgUrl: "", ok: false, detail: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 const LINE_SHAPE_LABELS: Record<string, string> = {
   circle: "Circle (sweeps every tangent angle)",
   diagonal45: "45° diagonal (worst case for staircase noise)",
@@ -201,6 +227,7 @@ export function TestViewerPage() {
 
   const lineShapes = Array.from(new Set((lineManifest as LineEntry[]).map((e) => e.shape)));
   const areaShapes = Array.from(new Set((areaManifest as AreaEntry[]).map((e) => e.shape)));
+  const fingerJointResults = useMemo(() => FIXTURE_MATRIX.map((entry) => ({ entry, ...checkFingerJointEntry(entry) })), []);
 
   return (
     <div className="test-viewer">
@@ -283,6 +310,33 @@ export function TestViewerPage() {
         </section>
       ))}
 
+      <h2 className="test-viewer-group">Finger Joints — parametric toolpath geometry</h2>
+      <section className="test-viewer-section">
+        <p>
+          No photo pipeline here — a finger joint is generated directly from
+          numbers (board width/thickness, finger count, bit diameter, relief
+          style), so this matrix sweeps the real combinations the UI offers
+          instead of simulating noise. Each card shows board A's notches (blue)
+          and board B's notches (orange) stacked, from{" "}
+          <code>src/joinery/testMatrix.ts</code>.
+        </p>
+        <div className="test-grid">
+          {fingerJointResults.map(({ entry, svgUrl, ok, detail }) => (
+            <div className="test-card" key={entry.label}>
+              <div className="test-card-images natural">
+                {svgUrl && <img src={svgUrl} alt={`${entry.label} toolpaths`} />}
+              </div>
+              <div className="test-card-meta">
+                <strong>{entry.label}</strong>
+                <span className={`test-status ${ok ? "pass" : "fail"}`}>
+                  {ok ? "✓" : "✗"} {detail}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="test-viewer-section">
         <h2>Real-photo baseline</h2>
         <p>
@@ -302,11 +356,11 @@ export function TestViewerPage() {
       <section className="test-viewer-section">
         <h2>Not covered here yet</h2>
         <p>
-          Finger Joints and the Stained Glass "cells" output don't have
-          checked-in visual fixtures yet. If you'd like to help harden this test
-          harness, more drawings — harder angles, thinner/thicker lines, tighter
-          cell gaps, real photos in different lighting — or a fixture generator
-          for one of these tools would all help.
+          The Stained Glass "cells" output doesn't have checked-in visual
+          fixtures yet. If you'd like to help harden this test harness, more
+          drawings — harder angles, thinner/thicker lines, tighter cell gaps,
+          real photos in different lighting — or a fixture generator for that
+          tool would all help.
         </p>
       </section>
     </div>

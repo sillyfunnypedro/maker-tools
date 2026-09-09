@@ -46,14 +46,18 @@ function properlyCrosses(a: Pt, b: Pt, c: Pt, d: Pt): boolean {
   return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
 
-/** Count places where a subpath's own curve crosses itself. */
-export function selfCrossings(segs: Cubic[]): number {
-  const p = flatten(segs);
+/** Count places where a closed polyline crosses itself. */
+export function pointsSelfCrossings(p: Pt[]): number {
   let hits = 0;
   for (let i = 0; i < p.length - 1; i++)
     for (let j = i + 2; j < p.length - 1; j++)
       if (properlyCrosses(p[i], p[i + 1], p[j], p[j + 1])) hits++;
   return hits;
+}
+
+/** Count places where a subpath's own curve crosses itself. */
+export function selfCrossings(segs: Cubic[]): number {
+  return pointsSelfCrossings(flatten(segs));
 }
 
 export function bbox(segs: Cubic[]): [number, number, number, number] {
