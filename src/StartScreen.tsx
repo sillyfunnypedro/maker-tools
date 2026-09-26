@@ -1,7 +1,7 @@
 // Start screen: pick a tool. The two tools are separate workflows that share the
 // backend processing modules (processing / svg / frameDetect / rectify / worker).
 
-export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace";
+export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw";
 
 export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
   return (
@@ -52,6 +52,15 @@ export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
         <small>
           Load a reference image, point your camera at paper on the table, and
           trace it with the image overlaid on the live camera view.
+        </small>
+      </button>
+      <button className="start-card" onClick={() => onPick("framedraw")}>
+        <span className="start-emoji" aria-hidden>🎯</span>
+        <strong>Frame Draw</strong>
+        <small>
+          Place a printed SketchFrame on the table, load an image, lock it in,
+          and trace freehand — the frame keeps the image glued in place as you
+          move the phone.
         </small>
       </button>
       <button className="start-card" onClick={() => onPick("tests")}>

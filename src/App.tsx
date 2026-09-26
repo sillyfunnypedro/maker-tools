@@ -30,6 +30,7 @@ import { TutorialPage } from "./TutorialPage";
 import { FingerJointPage } from "./FingerJointPage";
 import { TestViewerPage } from "./TestViewerPage";
 import { ArTracePage } from "./ArTracePage";
+import { FrameDrawPage } from "./FrameDrawPage";
 import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
 import { DEBUG_DUMP, buildDebugZip, dumpDebugBundle, type DumpInput } from "./debugDump";
 
@@ -83,7 +84,7 @@ export default function App() {
   const autoThreshFor = useRef<DetectResult | null>(null);
   // Top-level tool chosen on the start screen; no back-and-forth. "home" shows
   // the chooser; "glass" = Stained Glass Processor; "frame" = Image Frame -> SVG.
-  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace">("home");
+  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw">("home");
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -899,7 +900,9 @@ export default function App() {
                         ? "Test Fixtures"
                         : mode === "artrace"
                           ? "AR Trace"
-                          : "Maker Tools"}
+                          : mode === "framedraw"
+                            ? "Frame Draw"
+                            : "Maker Tools"}
           </h1>
           {mode !== "home" && (
             <button className="tool-home" onClick={goHome}>← Tools</button>
@@ -920,7 +923,9 @@ export default function App() {
                       ? "The sample images the test suite checks the line tracer against."
                       : mode === "artrace"
                         ? "Trace a reference image onto paper with the camera as a live light table."
-                        : "Pick a tool to get started."}
+                        : mode === "framedraw"
+                          ? "Trace freehand — a printed frame keeps the image locked in place as the camera moves."
+                          : "Pick a tool to get started."}
         </p>
       </header>
 
@@ -936,6 +941,8 @@ export default function App() {
         <TestViewerPage />
       ) : mode === "artrace" ? (
         <ArTracePage />
+      ) : mode === "framedraw" ? (
+        <FrameDrawPage />
       ) : !sourceRef.current && !busy ? (
         <label
           className={`dropzone${dragging ? " dragging" : ""}`}

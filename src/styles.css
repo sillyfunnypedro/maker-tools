@@ -757,3 +757,17 @@ button.primary {
   position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px;
   border-radius: 50%; background: var(--accent); transition: transform 60ms linear;
 }
+
+/* Frame Draw */
+.framedraw-image {
+  position: absolute; left: 0; top: 0; max-width: none;
+  transform-origin: 0 0; pointer-events: none; user-select: none;
+}
+.framedraw-status {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  padding: 4px 10px; border-radius: 999px; font-size: 0.78rem;
+  background: rgba(0,0,0,0.6); color: #e5e7eb;
+}
+.framedraw-status-tracking { color: #6ee7b7; }
+.framedraw-status-lost { color: #fca5a5; }
+.framedraw-status-searching { color: #9ca3af; }
