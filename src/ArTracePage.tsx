@@ -13,6 +13,7 @@ import {
   type ChangeEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { detectLines } from "./lineDetect";
 
 interface Transform {
   x: number;
@@ -34,6 +35,10 @@ export function ArTracePage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [opacity, setOpacity] = useState(0.5);
   const [transform, setTransform] = useState<Transform>(IDENTITY);
+
+  const [lineDetectOn, setLineDetectOn] = useState(false);
+  const [lineThreshold, setLineThreshold] = useState(120);
+  const [processedUrl, setProcessedUrl] = useState<string | null>(null);
 
   // --- Camera lifecycle ---------------------------------------------------
   useEffect(() => {
@@ -120,6 +125,7 @@ export function ArTracePage() {
       return URL.createObjectURL(file);
     });
     setTransform(IDENTITY);
+    setProcessedUrl(null);
   }, []);
 
   useEffect(() => {
@@ -128,6 +134,29 @@ export function ArTracePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Line detection: reduce the image to black-and-white outlines --------
+  // Recomputed (debounced) whenever the toggle, the slider, or the image
+  // itself changes; skipped entirely while off, so plain tracing never pays
+  // for it.
+  useEffect(() => {
+    if (!lineDetectOn || !imageUrl) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        setProcessedUrl(detectLines(img, lineThreshold));
+      };
+      img.src = imageUrl;
+    }, 80);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [lineDetectOn, imageUrl, lineThreshold]);
+
+  const displayImageUrl = lineDetectOn && processedUrl ? processedUrl : imageUrl;
 
   // --- Drag / pinch-zoom / rotate the overlaid image ----------------------
   // One finger pans; two fingers scale + rotate together, pivoting on their
@@ -220,7 +249,7 @@ export function ArTracePage() {
             onPointerCancel={endPointer}
           >
             <img
-              src={imageUrl}
+              src={displayImageUrl ?? imageUrl}
               alt="Reference to trace"
               className="artrace-image"
               style={{
@@ -263,6 +292,34 @@ export function ArTracePage() {
                 onChange={(e) => setOpacity(Number(e.target.value))}
               />
             </div>
+
+            <button
+              className={lineDetectOn ? "primary" : undefined}
+              onClick={() => setLineDetectOn((v) => !v)}
+            >
+              {lineDetectOn ? "Line detection: On" : "Line detection: Off"}
+            </button>
+            {lineDetectOn && (
+              <div className="control">
+                <label>
+                  Line sensitivity
+                  <span className="val">{lineThreshold}</span>
+                </label>
+                <input
+                  type="range"
+                  min={20}
+                  max={400}
+                  step={5}
+                  value={lineThreshold}
+                  onChange={(e) => setLineThreshold(Number(e.target.value))}
+                />
+                <small className="help">
+                  Lower shows more/fainter lines (and more noise); higher keeps
+                  only the strongest edges.
+                </small>
+              </div>
+            )}
+
             <button className="link-btn" onClick={() => setTransform(IDENTITY)}>
               Reset position
             </button>
