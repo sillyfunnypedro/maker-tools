@@ -71,6 +71,45 @@ export function ArTracePage() {
     };
   }, [restartToken]);
 
+  // --- Keep the screen awake ------------------------------------------------
+  // The phone sits mounted above the paper for the whole drawing session, not
+  // handheld, so there's no touch/motion to reset the OS's screen-lock timer —
+  // without this the display sleeps mid-trace and takes the camera feed with
+  // it. Re-acquired on visibility change, since the OS releases the lock
+  // whenever the tab is hidden (e.g. the phone still auto-locks if the user
+  // switches away and back).
+  useEffect(() => {
+    if (!("wakeLock" in navigator)) return;
+    let cancelled = false;
+    let sentinel: WakeLockSentinel | null = null;
+
+    const acquire = async () => {
+      try {
+        const lock = await navigator.wakeLock.request("screen");
+        if (cancelled) {
+          void lock.release();
+          return;
+        }
+        sentinel = lock;
+      } catch {
+        // Not fatal — e.g. the OS declined it. The tool still works, it just
+        // won't stop the screen from sleeping.
+      }
+    };
+    void acquire();
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !sentinel) void acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      void sentinel?.release();
+    };
+  }, []);
+
   // --- Load a reference image ---------------------------------------------
   const onPickImage = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
