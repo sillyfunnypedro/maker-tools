@@ -741,3 +741,19 @@ button.primary {
   align-self: flex-start; display: inline-flex; align-items: center; cursor: pointer;
 }
 .artrace-opacity { margin: 0; }
+.artrace-tilt-block { display: flex; flex-direction: column; gap: 8px; }
+.artrace-tilt-row { display: flex; align-items: center; gap: 12px; }
+.artrace-tilt-info { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.artrace-tilt-info span { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.artrace-tilt-info button { padding: 6px 10px; font-size: 0.85rem; }
+.artrace-level {
+  position: relative; width: 56px; height: 56px; flex: none;
+  border-radius: 50%; border: 1px solid var(--border); background: var(--panel-2);
+}
+.artrace-level::before {
+  content: ""; position: absolute; inset: 8px; border-radius: 50%; border: 1px dashed var(--border);
+}
+.artrace-level-dot {
+  position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px;
+  border-radius: 50%; background: var(--accent); transition: transform 60ms linear;
+}

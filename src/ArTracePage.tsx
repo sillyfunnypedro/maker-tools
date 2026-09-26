@@ -26,6 +26,21 @@ const IDENTITY: Transform = { x: 0, y: 0, scale: 1, rotateDeg: 0 };
 
 type CameraState = "starting" | "ready" | "denied" | "unsupported" | "error";
 
+interface Tilt {
+  beta: number;  // front-back tilt, degrees
+  gamma: number; // left-right tilt, degrees
+}
+
+type TiltState = "idle" | "unsupported" | "denied" | "active";
+
+// iOS gates DeviceOrientationEvent behind an explicit permission prompt (has
+// to be triggered from a user gesture); no other browser has this method.
+type DeviceOrientationEventCtor = typeof DeviceOrientationEvent & {
+  requestPermission?: () => Promise<"granted" | "denied">;
+};
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 export function ArTracePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraState, setCameraState] = useState<CameraState>("starting");
@@ -39,6 +54,11 @@ export function ArTracePage() {
   const [lineDetectOn, setLineDetectOn] = useState(false);
   const [lineThreshold, setLineThreshold] = useState(120);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
+
+  const [tiltState, setTiltState] = useState<TiltState>("idle");
+  const [tilt, setTilt] = useState<Tilt | null>(null);
+  const [tiltBaseline, setTiltBaseline] = useState<Tilt | null>(null);
+  const [autoSkew, setAutoSkew] = useState(true);
 
   // --- Camera lifecycle ---------------------------------------------------
   useEffect(() => {
@@ -114,6 +134,54 @@ export function ArTracePage() {
       void sentinel?.release();
     };
   }, []);
+
+  // --- Tilt sensor: skew the image to match a camera held at an angle -------
+  // Holding the phone tilted (rather than straight down) shows more of the
+  // paper, but foreshortens it into a trapezoid — the flat reference image
+  // needs the same keystone skew to still line up. The first reading after
+  // enabling becomes the "level" baseline (whatever angle the phone happens
+  // to be at when you turn this on); skew tracks the *change* from there, not
+  // an absolute flat-table reading, since there's no way to know the mount's
+  // resting angle in advance. Recalibrate resets that baseline to the current
+  // angle if the mount gets bumped or repositioned.
+  const enableTilt = useCallback(async () => {
+    if (typeof DeviceOrientationEvent === "undefined") {
+      setTiltState("unsupported");
+      return;
+    }
+    const ctor = DeviceOrientationEvent as DeviceOrientationEventCtor;
+    if (typeof ctor.requestPermission === "function") {
+      try {
+        if ((await ctor.requestPermission()) !== "granted") {
+          setTiltState("denied");
+          return;
+        }
+      } catch {
+        setTiltState("denied");
+        return;
+      }
+    }
+    setTiltBaseline(null);
+    setTiltState("active");
+  }, []);
+
+  useEffect(() => {
+    if (tiltState !== "active") return;
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return;
+      const next = { beta: e.beta, gamma: e.gamma };
+      setTilt(next);
+      setTiltBaseline((b) => b ?? next);
+    };
+    window.addEventListener("deviceorientation", onOrientation);
+    return () => window.removeEventListener("deviceorientation", onOrientation);
+  }, [tiltState]);
+
+  const recalibrateTilt = useCallback(() => setTiltBaseline(tilt), [tilt]);
+
+  const relBeta = tilt && tiltBaseline ? clamp(tilt.beta - tiltBaseline.beta, -45, 45) : 0;
+  const relGamma = tilt && tiltBaseline ? clamp(tilt.gamma - tiltBaseline.gamma, -45, 45) : 0;
+  const skewActive = autoSkew && tiltState === "active" && tiltBaseline != null;
 
   // --- Load a reference image ---------------------------------------------
   const onPickImage = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -255,6 +323,7 @@ export function ArTracePage() {
               style={{
                 opacity,
                 transform:
+                  (skewActive ? `perspective(900px) rotateX(${relBeta}deg) rotateY(${-relGamma}deg) ` : "") +
                   `translate(-50%, -50%) translate(${transform.x}px, ${transform.y}px) ` +
                   `rotate(${transform.rotateDeg}deg) scale(${transform.scale})`,
               }}
@@ -320,6 +389,45 @@ export function ArTracePage() {
               </div>
             )}
 
+            <div className="artrace-tilt-block">
+              {tiltState === "idle" && (
+                <button onClick={enableTilt}>Enable tilt sensor</button>
+              )}
+              {tiltState === "unsupported" && (
+                <small className="help">This browser doesn't expose a tilt sensor.</small>
+              )}
+              {tiltState === "denied" && (
+                <>
+                  <small className="help">Tilt sensor access was denied.</small>
+                  <button onClick={enableTilt}>Try again</button>
+                </>
+              )}
+              {tiltState === "active" && (
+                <div className="artrace-tilt-row">
+                  <div className="artrace-level" aria-hidden>
+                    <div
+                      className="artrace-level-dot"
+                      style={{ transform: `translate(${(clamp(relGamma, -30, 30) / 30) * 20}px, ${(clamp(relBeta, -30, 30) / 30) * 20}px)` }}
+                    />
+                  </div>
+                  <div className="artrace-tilt-info">
+                    <span>
+                      Tilt: {relBeta >= 0 ? "+" : ""}{relBeta.toFixed(0)}° / {relGamma >= 0 ? "+" : ""}{relGamma.toFixed(0)}°
+                    </span>
+                    <button
+                      className={autoSkew ? "primary" : undefined}
+                      onClick={() => setAutoSkew((v) => !v)}
+                    >
+                      {autoSkew ? "Auto-skew: On" : "Auto-skew: Off"}
+                    </button>
+                    <button className="link-btn" onClick={recalibrateTilt}>
+                      Recalibrate level
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button className="link-btn" onClick={() => setTransform(IDENTITY)}>
               Reset position
             </button>
@@ -329,8 +437,10 @@ export function ArTracePage() {
 
       <p className="hint">
         Drag with one finger to move the image, pinch with two fingers to
-        resize and rotate it. Nothing here is saved — this is a live aid for
-        tracing onto real paper.
+        resize and rotate it. Enable the tilt sensor to auto-skew the image
+        when the camera is held at an angle instead of straight down, so it
+        still lines up with the paper. Nothing here is saved — this is a live
+        aid for tracing onto real paper.
       </p>
     </div>
   );
