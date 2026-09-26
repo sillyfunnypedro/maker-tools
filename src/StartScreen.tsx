@@ -1,7 +1,7 @@
 // Start screen: pick a tool. The two tools are separate workflows that share the
 // backend processing modules (processing / svg / frameDetect / rectify / worker).
 
-export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests";
+export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace";
 
 export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
   return (
@@ -44,6 +44,14 @@ export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
         <small>
           Generate complementary finger-joint profiles for a CNC router, with
           corner relief for a round bit.
+        </small>
+      </button>
+      <button className="start-card" onClick={() => onPick("artrace")}>
+        <span className="start-emoji" aria-hidden>📐</span>
+        <strong>AR Trace</strong>
+        <small>
+          Load a reference image, point your camera at paper on the table, and
+          trace it with the image overlaid on the live camera view.
         </small>
       </button>
       <button className="start-card" onClick={() => onPick("tests")}>

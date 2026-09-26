@@ -29,6 +29,7 @@ import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
 import { FingerJointPage } from "./FingerJointPage";
 import { TestViewerPage } from "./TestViewerPage";
+import { ArTracePage } from "./ArTracePage";
 import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
 import { DEBUG_DUMP, buildDebugZip, dumpDebugBundle, type DumpInput } from "./debugDump";
 
@@ -82,7 +83,7 @@ export default function App() {
   const autoThreshFor = useRef<DetectResult | null>(null);
   // Top-level tool chosen on the start screen; no back-and-forth. "home" shows
   // the chooser; "glass" = Stained Glass Processor; "frame" = Image Frame -> SVG.
-  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests">("home");
+  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace">("home");
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -896,7 +897,9 @@ export default function App() {
                       ? "Finger Joints"
                       : mode === "tests"
                         ? "Test Fixtures"
-                        : "Maker Tools"}
+                        : mode === "artrace"
+                          ? "AR Trace"
+                          : "Maker Tools"}
           </h1>
           {mode !== "home" && (
             <button className="tool-home" onClick={goHome}>← Tools</button>
@@ -915,7 +918,9 @@ export default function App() {
                     ? "CNC finger-joint profiles with corner relief."
                     : mode === "tests"
                       ? "The sample images the test suite checks the line tracer against."
-                      : "Pick a tool to get started."}
+                      : mode === "artrace"
+                        ? "Trace a reference image onto paper with the camera as a live light table."
+                        : "Pick a tool to get started."}
         </p>
       </header>
 
@@ -929,6 +934,8 @@ export default function App() {
         <FingerJointPage />
       ) : mode === "tests" ? (
         <TestViewerPage />
+      ) : mode === "artrace" ? (
+        <ArTracePage />
       ) : !sourceRef.current && !busy ? (
         <label
           className={`dropzone${dragging ? " dragging" : ""}`}
