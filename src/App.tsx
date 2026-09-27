@@ -23,7 +23,7 @@ import type {
 } from "./worker";
 import { renderStrokeGroups, strokesToSvg, type StrokeGroup } from "./svg";
 import { rectifyOpening, flattenIllumination, otsuThreshold } from "./rectify";
-import { cacheImage, getCachedImage } from "./imageCache";
+import { cacheImage, clearCachedImage, getCachedImage } from "./imageCache";
 import { StartScreen, type Tool } from "./StartScreen";
 import { FramesPage } from "./FramesPage";
 import { TutorialPage } from "./TutorialPage";
@@ -717,6 +717,23 @@ export default function App() {
   // landing on "cells" — keep it pinned to "lines" here too (see pickTool).
   const reset = () => setParams(mode === "frame" ? { ...DEFAULT_PARAMS, mode: "lines" } : DEFAULT_PARAMS);
 
+  // Drop the current image and go back to the empty dropzone, in place — as
+  // opposed to a straight-to-file-picker button, which left no way to get
+  // back to a paste/drag target once an image (and its result) was already
+  // showing, short of leaving the tool entirely via "Tools" (goHome).
+  const clearImage = () => {
+    fileRef.current = null;
+    sourceRef.current = null;
+    setFrameSource(null);
+    setGlassSource(null);
+    setFrameResult(null);
+    setHasResult(false);
+    setFileName(null);
+    setError(null);
+    reset();
+    void clearCachedImage(mode === "frame" ? "frame" : "glass");
+  };
+
   const pickTool = (t: Tool) => {
     // Start each tool from its own defaults. The two tools work on different
     // images — the frame tool on a rectified, illumination-flattened crop, the
@@ -1324,10 +1341,9 @@ export default function App() {
               </button>
 
               <button onClick={reset} disabled={busy}>Reset</button>
-              <label className="link-btn">
-                New photo
-                <input type="file" accept="image/*" onChange={onFileInput} hidden />
-              </label>
+              <button className="link-btn" onClick={clearImage} disabled={busy}>
+                New image
+              </button>
 
               {DEBUG_DUMP && (
                 <>
