@@ -31,6 +31,7 @@ import { FingerJointPage } from "./FingerJointPage";
 import { TestViewerPage } from "./TestViewerPage";
 import { ArTracePage } from "./ArTracePage";
 import { FrameDrawPage } from "./FrameDrawPage";
+import { QrGeneratorPage } from "./QrGeneratorPage";
 import { CookieSplash, cookiePolicyShown } from "./CookieSplash";
 import { DEBUG_DUMP, buildDebugZip, dumpDebugBundle, type DumpInput } from "./debugDump";
 
@@ -84,7 +85,7 @@ export default function App() {
   const autoThreshFor = useRef<DetectResult | null>(null);
   // Top-level tool chosen on the start screen; no back-and-forth. "home" shows
   // the chooser; "glass" = Stained Glass Processor; "frame" = Image Frame -> SVG.
-  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw">("home");
+  const [mode, setMode] = useState<"home" | "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw" | "qrgen">("home");
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -919,7 +920,9 @@ export default function App() {
                           ? "AR Trace"
                           : mode === "framedraw"
                             ? "Frame Draw"
-                            : "Maker Tools"}
+                            : mode === "qrgen"
+                              ? "QR Code Generator"
+                              : "Maker Tools"}
           </h1>
           {mode !== "home" && (
             <button className="tool-home" onClick={goHome}>← Tools</button>
@@ -942,7 +945,9 @@ export default function App() {
                         ? "Trace a reference image onto paper with the camera as a live light table."
                         : mode === "framedraw"
                           ? "Trace freehand — a printed frame keeps the image locked in place as the camera moves."
-                          : "Pick a tool to get started."}
+                          : mode === "qrgen"
+                            ? "Free, offline QR codes — no tracking, no paywall."
+                            : "Pick a tool to get started."}
         </p>
       </header>
 
@@ -960,6 +965,8 @@ export default function App() {
         <ArTracePage />
       ) : mode === "framedraw" ? (
         <FrameDrawPage />
+      ) : mode === "qrgen" ? (
+        <QrGeneratorPage />
       ) : !sourceRef.current && !busy ? (
         <label
           className={`dropzone${dragging ? " dragging" : ""}`}

@@ -1,7 +1,7 @@
 // Start screen: pick a tool. The two tools are separate workflows that share the
 // backend processing modules (processing / svg / frameDetect / rectify / worker).
 
-export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw";
+export type Tool = "glass" | "frame" | "frames" | "howto" | "joints" | "tests" | "artrace" | "framedraw" | "qrgen";
 
 export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
   return (
@@ -61,6 +61,14 @@ export function StartScreen({ onPick }: { onPick: (t: Tool) => void }) {
           Place a printed SketchFrame on the table, load an image, lock it in,
           and trace freehand — the frame keeps the image glued in place as you
           move the phone.
+        </small>
+      </button>
+      <button className="start-card" onClick={() => onPick("qrgen")}>
+        <span className="start-emoji" aria-hidden>🔳</span>
+        <strong>QR Code Generator</strong>
+        <small>
+          Free, offline QR codes with a few dot styles and custom colors — no
+          account, no tracking, no paywalled "high-res" export.
         </small>
       </button>
       <button className="start-card" onClick={() => onPick("tests")}>

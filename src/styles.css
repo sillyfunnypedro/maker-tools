@@ -771,3 +771,32 @@ button.primary {
 .framedraw-status-tracking { color: #6ee7b7; }
 .framedraw-status-lost { color: #fca5a5; }
 .framedraw-status-searching { color: #9ca3af; }
+
+/* QR Code Generator */
+.qrgen { display: flex; flex-direction: column; gap: 16px; }
+.qrgen-text {
+  width: 100%; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: #0f151d; color: var(--text); font-size: 1rem;
+}
+.qrgen-colors { display: flex; gap: 20px; }
+.qrgen-color-field {
+  display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted);
+}
+.qrgen-color-field input[type="color"] {
+  width: 36px; height: 28px; padding: 0; border: 1px solid var(--border);
+  border-radius: 6px; background: none; cursor: pointer;
+}
+.qrgen-preview-wrap { display: flex; justify-content: center; }
+.qrgen-preview { width: 100%; max-width: 360px; border-radius: 10px; overflow: hidden; }
+.qrgen-preview svg { display: block; width: 100%; height: auto; }
+.qrgen-preview-empty {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 20px; color: var(--muted); font-size: 0.9rem;
+  background: var(--panel-2); border: 1px dashed var(--border);
+}
+.qrgen-png-row { display: flex; gap: 8px; }
+.qrgen-png-row select {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--panel-2); color: var(--text);
+}
+.qrgen-png-row button { flex: 1; }
